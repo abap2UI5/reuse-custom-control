@@ -1,0 +1,7 @@
+node_modules/
+dist/
+packages/reuse-custom-control/frontend/
+playwright-report/
+test-results/
+package-lock.json
+.abap2ui5/

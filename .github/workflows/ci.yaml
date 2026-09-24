@@ -1,0 +1,92 @@
+name: ci
+
+# check - lint, format, the consumer build of the example and the package
+#         contents, all against the frontend synced from A2UI5_PIN
+# e2e   - the example app in a browser against a live abap2UI5 backend: the
+#         pinned abap2UI5, transpiled to JavaScript and served by its own
+#         express server (npm run express) - no SAP system involved
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        if: ${{ !cancelled() }}
+      - run: npm run format:check
+        if: ${{ !cancelled() }}
+      - run: npm run sync
+      - run: npm run build
+        if: ${{ !cancelled() }}
+      - run: npm run pack:check
+        if: ${{ !cancelled() }}
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: pin
+        run: echo "sha=$(tr -d '[:space:]' < A2UI5_PIN)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: abap2UI5/abap2UI5
+          ref: ${{ steps.pin.outputs.sha }}
+          path: .abap2ui5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .abap2ui5/package-lock.json
+
+      - name: Build the abap2UI5 backend
+        working-directory: .abap2ui5
+        run: |
+          npm ci
+          npm run downport
+          npm run auto_transpile
+      - name: Start it on port 3000
+        working-directory: .abap2ui5
+        run: |
+          HOST=127.0.0.1 PORT=3000 nohup npm run express > "$RUNNER_TEMP/express.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null http://127.0.0.1:3000/ && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/express.log"
+          exit 1
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run sync
+      - run: npx playwright test
+        env:
+          CI: "true"
+      - if: ${{ failure() }}
+        run: cat "$RUNNER_TEMP/express.log"
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
