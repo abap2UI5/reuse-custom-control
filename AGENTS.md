@@ -45,13 +45,17 @@ limitation in the control when the fix belongs in abap2UI5 - say so instead.
 - **UI5 1.71 is the floor**, as in abap2UI5. Use no module, class, property or
   enum newer than 1.71, and no `sap/ui/core/Lib` / `sap/ui/core/Element`
   static APIs. What the control uses today and since when:
-  `sap/base/util/LoaderExtensions` and `sap/ui/dom/includeStylesheet` (1.58),
-  `ComponentContainer#lifecycle` (1.56), renderer `apiVersion: 2` (1.67).
+  `sap/ui/dom/includeStylesheet` (1.58), `ComponentContainer#lifecycle`
+  (1.56), renderer `apiVersion: 2` (1.67).
   The e2e tests run the example on 1.71 too (`examples/host-app/ui5-1.71.yaml`,
   the `ui5-1.71` Playwright project) - a change to `src/` is done when both
   projects pass.
 - **Keep the control thin.** It picks the class, the endpoint and the size;
-  everything the app does comes from the backend through the component.
+  everything the app does comes from the backend through the component. It
+  configures the component only through what the frontend reads itself -
+  `componentData.startupParameters` and `componentData.endpoint` (abap2UI5
+  `Component.init`) - never by patching the manifest or reaching into the
+  component's state.
 - **One component per control, one backend session per component.** A change
   of `app`, `endpoint` or `params` replaces the component; nothing is patched
   into a running one.

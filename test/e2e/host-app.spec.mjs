@@ -53,6 +53,9 @@ test("the embedded app stays inside its container", async ({ page }) => {
   }
 });
 
+// The endpoint is handed over as componentData.endpoint, which the frontend
+// reads itself since abap2UI5 2f93737 (#2791) and does not send on - so the
+// POST has to arrive at that path, with only the startup parameters in it.
 test("endpoint and params reach the backend", async ({ page }) => {
   const request = page.waitForRequest(
     (r) => r.method() === "POST" && r.url().endsWith("/sap/bc/z2ui5_alt"),

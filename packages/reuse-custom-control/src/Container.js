@@ -19,11 +19,9 @@ sap.ui.define(
   [
     "sap/ui/core/Control",
     "sap/ui/core/ComponentContainer",
-    "sap/base/util/LoaderExtensions",
-    "sap/base/Log",
     "sap/ui/dom/includeStylesheet",
   ],
-  (Control, ComponentContainer, LoaderExtensions, Log, includeStylesheet) => {
+  (Control, ComponentContainer, includeStylesheet) => {
     "use strict";
 
     // the component name - "sap.app/id" of abap2UI5's app/webapp/manifest.json
@@ -45,8 +43,9 @@ sap.ui.define(
           // has. Nothing starts while it is empty.
           app: { type: "string", defaultValue: "" },
 
-          // URL of the abap2UI5 HTTP service. Empty means the component's
-          // own default, /sap/bc/z2ui5. The backend rejects a POST whose
+          // URL of the abap2UI5 HTTP service, handed to the component as
+          // componentData.endpoint. Empty means the component's own default,
+          // /sap/bc/z2ui5 from its manifest. The backend rejects a POST whose
           // Origin is not its own host, so this has to be reachable from the
           // page's origin - a relative path behind the app's proxy, the
           // approuter or the launchpad, not another server's URL.
@@ -75,8 +74,7 @@ sap.ui.define(
           componentCreated: {
             parameters: { component: { type: "sap.ui.core.UIComponent" } },
           },
-          // it could not be created - the frontend files are not served, or
-          // the manifest could not be loaded
+          // it could not be created - e.g. the frontend files are not served
           componentFailed: {
             parameters: { reason: { type: "object" } },
           },
@@ -97,20 +95,6 @@ sap.ui.define(
         },
       },
 
-      init() {
-        // Bumped whenever the running app has to be replaced. A component
-        // that is still being prepared for an older generation is dropped
-        // when it arrives instead of being shown.
-        this._generation = 0;
-        this._preparing = -1;
-      },
-
-      exit() {
-        // drops a component still being prepared; the one in _container
-        // goes with the aggregation
-        this._generation++;
-      },
-
       setApp(value) {
         return this._setStartProperty("app", value);
       },
@@ -125,71 +109,29 @@ sap.ui.define(
 
       // The three properties the backend session is started with. A change
       // throws the running component away (which ends its session) and lets
-      // the next rendering start a fresh one.
+      // the next rendering start a fresh one. A destroyed container fires
+      // nothing any more, so an event of the replaced app cannot reach the
+      // host after the new one started.
       _setStartProperty(name, value) {
         const before = this.getProperty(name);
         this.setProperty(name, value);
         if (this.getProperty(name) !== before) {
-          this._generation++;
           this.destroyAggregation("_container");
         }
         return this;
       },
 
       onBeforeRendering() {
-        if (
-          !this.getApp() ||
-          this.getAggregation("_container") ||
-          this._preparing === this._generation
-        ) {
-          return;
+        if (this.getApp() && !this.getAggregation("_container")) {
+          // suppress the invalidation: this rendering is about to render it
+          this.setAggregation("_container", this._createContainer(), true);
         }
-        const generation = this._generation;
-        this._preparing = generation;
-
-        this._manifest()
-          .then((manifest) => {
-            // superseded by a newer start, or the control is gone (exit( )
-            // bumps the generation too)
-            if (generation !== this._generation) return;
-            this.setAggregation(
-              "_container",
-              this._createContainer(manifest, generation),
-            );
-          })
-          .catch((reason) => {
-            if (generation !== this._generation) return;
-            Log.error(
-              "z2ui5.reuse.Container: loading the z2ui5 manifest failed",
-              reason,
-            );
-            this.fireComponentFailed({ reason });
-          });
       },
 
-      // The manifest the component is created with. abap2UI5 reads its
-      // backend URL from sap.app/dataSources/http/uri (App.controller in
-      // app/webapp) and takes it from nowhere else, so for an endpoint of its
-      // own this instance gets a COPY of the manifest with that uri replaced.
-      // Without one the component loads its own manifest (true).
-      _manifest() {
-        const endpoint = this.getEndpoint();
-        if (!endpoint) return Promise.resolve(true);
-        return LoaderExtensions.loadResource(`${COMPONENT}/manifest.json`, {
-          async: true,
-          dataType: "json",
-        }).then((manifest) => {
-          // the loader may hand out a cached object - never write into it
-          const copy = JSON.parse(JSON.stringify(manifest));
-          copy["sap.app"].dataSources.http.uri = endpoint;
-          return copy;
-        });
-      },
-
-      _createContainer(manifest, generation) {
+      _createContainer() {
         return new ComponentContainer({
           name: COMPONENT,
-          manifest,
+          manifest: true,
           async: true,
           // the component lives and dies with this container - and so does
           // its backend session
@@ -203,29 +145,34 @@ sap.ui.define(
           height: "100%",
           settings: { componentData: this._componentData() },
           componentCreated: (event) => {
-            if (generation !== this._generation) return;
             this.fireComponentCreated({
               component: event.getParameter("component"),
             });
           },
           componentFailed: (event) => {
-            if (generation !== this._generation) return;
             this.fireComponentFailed({ reason: event.getParameter("reason") });
           },
         });
       },
 
-      // What the backend reads from the component data: app_start picks the
-      // class (z2ui5_cl_ui5_handler=>request_app_start), and every parameter
-      // reaches the app as client->get( )-t_comp_params. Both follow the
-      // launchpad's shape - one array of values per parameter name.
+      // The component data of the app:
+      //   startupParameters  what the backend reads - app_start picks the
+      //                      class (z2ui5_cl_ui5_handler=>request_app_start),
+      //                      every parameter reaches the app as
+      //                      client->get( )-t_comp_params. Both in the
+      //                      launchpad's shape, one array of values per name
+      //   endpoint           the backend URL, read by the frontend and not
+      //                      sent on (Component.init in abap2UI5 app/webapp)
       _componentData() {
         const startupParameters = {};
         for (const [name, value] of Object.entries(this.getParams() || {})) {
           startupParameters[name] = [String(value)];
         }
         startupParameters.app_start = [this.getApp()];
-        return { startupParameters };
+        const endpoint = this.getEndpoint();
+        return endpoint
+          ? { startupParameters, endpoint }
+          : { startupParameters };
       },
     });
   },
