@@ -58,6 +58,26 @@ class do not share state. Changing `app`, `endpoint` or `params` ends the
 running session and starts a new one; destroying the control ends it too.
 All three are ordinary properties, so they can be bound to your model.
 
+### Without the control
+
+The control is a convenience. Underneath it is a UI5 reuse component, and
+the package serves that too, so a `ComponentContainer` of your own works the
+same way:
+
+```js
+new ComponentContainer({
+  name: "z2ui5",
+  async: true,
+  manifest: true,
+  settings: {
+    componentData: {
+      endpoint: "/sap/bc/z2ui5", // optional, this is the default
+      startupParameters: { app_start: ["ZCL_MY_ABAP2UI5_APP"] },
+    },
+  },
+});
+```
+
 ## Backend
 
 The control is the frontend only. The app runs on an ABAP system with
