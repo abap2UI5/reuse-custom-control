@@ -1,0 +1,16 @@
+# A UI5 CLI project of type "module": no library around it, just files served
+# under a namespace. Any UI5 app that has this package in its dependencies
+# gets both paths served by `ui5 serve` and copied by `ui5 build --all` -
+# no resourceRoots in a standalone index.html (see README for the launchpad).
+specVersion: "4.0"
+type: module
+metadata:
+  name: "@abap2ui5/reuse-custom-control"
+resources:
+  configuration:
+    paths:
+      # the custom control - written here
+      /resources/z2ui5/reuse/: ./src/
+      # the abap2UI5 frontend (the z2ui5 component) - generated from
+      # abap2UI5 app/webapp by scripts/sync-frontend.mjs, never edited here
+      /resources/z2ui5/: ./frontend/

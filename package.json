@@ -1,0 +1,30 @@
+{
+  "name": "reuse-custom-control-workspace",
+  "private": true,
+  "description": "Workspace of @abap2ui5/reuse-custom-control: the npm package (packages/) and an example app that uses it (examples/)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-frontend.mjs",
+    "start": "npm run sync && npm run start --workspace examples/host-app",
+    "build": "npm run sync && npm run build --workspace examples/host-app",
+    "pack:check": "npm run sync && npm pack --dry-run --workspace packages/reuse-custom-control",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,mjs,json}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,json}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@ui5/cli": "^4.0.69",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9"
+  }
+}
