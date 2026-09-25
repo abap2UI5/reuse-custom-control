@@ -1,7 +1,7 @@
 # Example: abap2UI5 inside a UI5 app
 
 A plain UI5 app that embeds abap2UI5 apps with
-[`@abap2ui5/reuse-custom-control`](../../packages/reuse-custom-control).
+[`@abap2ui5/embed`](../../packages/embed).
 How to run it is in the [repository README](../../README.md#run-the-example).
 
 What to look at:

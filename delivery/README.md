@@ -1,7 +1,7 @@
 # abap2UI5 frontend-cc
 
 abap2UI5 inside a UI5 app: the example app of
-[abap2UI5/reuse-custom-control](https://github.com/abap2UI5/reuse-custom-control),
+[abap2UI5/embed](https://github.com/abap2UI5/embed),
 ready to install. A plain UI5 app places `z2ui5.reuse.Container` controls, and
 each of them runs an abap2UI5 app - an ABAP class implementing `z2ui5_if_app` -
 in its own backend session:
@@ -20,14 +20,14 @@ abap2UI5 frontend on its own, and it is built the same way.
 > ### This repository is generated — it does not take manual pull requests
 >
 > Every branch is built in
-> [abap2UI5/reuse-custom-control](https://github.com/abap2UI5/reuse-custom-control)
+> [abap2UI5/embed](https://github.com/abap2UI5/embed)
 > by `scripts/build-branches.mjs` and pushed in by its `frontend_cc_deploy`
 > workflow — first as `result/<branch>` folders into one commit on `main`, then
 > fanned out by the `deliver` workflow here, so each branch is exactly one
 > commit ahead of `main`.
 >
 > ```
-> abap2UI5/reuse-custom-control              abap2UI5/frontend-cc
+> abap2UI5/embed              abap2UI5/frontend-cc
 >                      frontend_cc_deploy                       deliver
 >   examples/host-app  ─────────────────▶  main           ──────────▶  standard
 >   packages/.../src                        result/<branch>             standard_v2
@@ -100,15 +100,15 @@ its `endpoint` property.
 
 | Content | Owned by |
 |---|---|
-| the app, the control, the build | [abap2UI5/reuse-custom-control](https://github.com/abap2UI5/reuse-custom-control) — `examples/host-app`, `packages/reuse-custom-control/src`, `scripts/build-branches.mjs` |
-| the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp`, `tools/`; reaches this repository with the next bump of `A2UI5_PIN` in reuse-custom-control |
+| the app, the control, the build | [abap2UI5/embed](https://github.com/abap2UI5/embed) — `examples/host-app`, `packages/embed/src`, `scripts/build-branches.mjs` |
+| the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp`, `tools/`; reaches this repository with the next bump of `A2UI5_PIN` in embed |
 | `result/` on `main`, every branch | machine-written — a hand edit is overwritten by the next delivery |
 | this repository's docs | here, as a maintenance pull request |
 
 #### Issues
 
 For bug reports or feature requests, open an issue in
-[abap2UI5/reuse-custom-control](https://github.com/abap2UI5/reuse-custom-control/issues)
+[abap2UI5/embed](https://github.com/abap2UI5/embed/issues)
 (the app, the control) or
 [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5/issues) (the
 frontend, the backend).

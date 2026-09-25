@@ -29,7 +29,7 @@ on:
     paths:
       # everything the build consumes
       - "examples/host-app/**"
-      - "packages/reuse-custom-control/src/**"
+      - "packages/embed/src/**"
       - "scripts/**"
       - "delivery/**"
       - "A2UI5_PIN"
@@ -60,7 +60,7 @@ env:
 
 jobs:
   publish:
-    if: github.repository == 'abap2UI5/reuse-custom-control'
+    if: github.repository == 'abap2UI5/embed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -108,7 +108,7 @@ jobs:
             dest="$clone/result/$b"
             published=""
             if [ -f "$dest/VERSION" ]; then
-              published=$(sed -n 's|^built from: abap2UI5/reuse-custom-control@||p' "$dest/VERSION")
+              published=$(sed -n 's|^built from: abap2UI5/embed@||p' "$dest/VERSION")
             fi
             rm -rf "$dest"
             mkdir -p "$clone/result"
@@ -138,7 +138,7 @@ jobs:
           # over there reads like the history here
           subject=$(git log -1 --format=%s "$GITHUB_SHA")
           git -C "$clone" add -A
-          git -C "$clone" commit --quiet -m "$subject" -m "abap2UI5/reuse-custom-control@$GITHUB_SHA"
+          git -C "$clone" commit --quiet -m "$subject" -m "abap2UI5/embed@$GITHUB_SHA"
 
           # main over there also takes maintenance merges (docs only, never
           # result/), so a rejected push is rebased and retried

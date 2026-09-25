@@ -3,7 +3,7 @@
 // What the package ships under /resources/z2ui5/ is app/webapp of
 // abap2UI5/abap2UI5 at the commit in A2UI5_PIN - the z2ui5 UIComponent the
 // custom control wraps. It is NOT written here: app/webapp in abap2UI5 is its
-// single source, so packages/reuse-custom-control/frontend/ is generated,
+// single source, so packages/embed/frontend/ is generated,
 // git-ignored and replaced on every sync. A frontend change belongs in
 // abap2UI5, followed by a bump of A2UI5_PIN here.
 //
@@ -38,7 +38,7 @@ import {
   root,
 } from "./abap2ui5.mjs";
 
-const target = join(root, "packages", "reuse-custom-control", "frontend");
+const target = join(root, "packages", "embed", "frontend");
 const stampFile = join(target, ".a2ui5-pin");
 const EXCLUDE = new Set(["index.html"]);
 

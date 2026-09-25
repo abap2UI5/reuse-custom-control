@@ -20,7 +20,7 @@
 //   frontend/      abap2UI5 app/webapp at A2UI5_PIN (without its index.html)
 //                  - the z2ui5 component the control wraps
 //   frontend/reuse/
-//                  packages/reuse-custom-control/src - the control
+//                  packages/embed/src - the control
 //   frontend/preload.js
 //                  all modules of the two above in one bundle
 //
@@ -66,7 +66,7 @@ export const BRANCHES = ["cloud", "cloud_v2", "standard", "standard_v2"];
 
 const out = join(root, "out");
 const hostApp = join(root, "examples", "host-app");
-const control = join(root, "packages", "reuse-custom-control", "src");
+const control = join(root, "packages", "embed", "src");
 const delivery = join(root, "delivery");
 
 // the frontend's backend path, and what the cloud branches point it at -
@@ -290,16 +290,16 @@ function buildCloud(ctx, branch) {
   writeFileSync(join(app, ".gitignore"), "node_modules/\ndist/\n.env\n");
 
   const pkg = readJson(join(hostApp, "package.json"));
-  if (!pkg.dependencies?.["@abap2ui5/reuse-custom-control"]) {
+  if (!pkg.dependencies?.["@abap2ui5/embed"]) {
     throw new Error(
       "build-branches: examples/host-app/package.json no longer depends on " +
-        "@abap2ui5/reuse-custom-control",
+        "@abap2ui5/embed",
     );
   }
   delete pkg.dependencies;
   pkg.description =
     "abap2UI5 inside a UI5 app - the example of " +
-    "@abap2ui5/reuse-custom-control, with the control and the abap2UI5 " +
+    "@abap2ui5/embed, with the control and the abap2UI5 " +
     "frontend in webapp/frontend";
   writeJson(join(app, "package.json"), pkg);
 

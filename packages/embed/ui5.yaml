@@ -5,7 +5,7 @@
 specVersion: "4.0"
 type: module
 metadata:
-  name: "@abap2ui5/reuse-custom-control"
+  name: "@abap2ui5/embed"
 resources:
   configuration:
     paths:

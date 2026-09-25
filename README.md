@@ -1,6 +1,6 @@
-# abap2UI5 reuse custom control
+# abap2UI5 embed
 
-Home of **[`@abap2ui5/reuse-custom-control`](packages/reuse-custom-control)**:
+Home of **[`@abap2ui5/embed`](packages/embed)**:
 a UI5 custom control, published on npm, that runs an
 [abap2UI5](https://github.com/abap2UI5/abap2UI5) app inside any UI5 app, plus
 an **[example app](examples/host-app)** that shows how to use it.
@@ -11,7 +11,7 @@ an **[example app](examples/host-app)** that shows how to use it.
 </mvc:View>
 ```
 
-How to use the package is in its [README](packages/reuse-custom-control/README.md)
+How to use the package is in its [README](packages/embed/README.md)
 (also what npm shows). This file is about working on it.
 
 ## Layout
@@ -20,7 +20,7 @@ How to use the package is in its [README](packages/reuse-custom-control/README.m
 A2UI5_PIN                      abap2UI5 commit whose frontend the package ships
 scripts/sync-frontend.mjs      brings that frontend into the package
 scripts/build-branches.mjs     builds the abap2UI5/frontend-cc branches (out/, git-ignored)
-packages/reuse-custom-control/ the npm package - a UI5 CLI project of type "module"
+packages/embed/ the npm package - a UI5 CLI project of type "module"
   src/                           the control (written here)
   frontend/                      the abap2UI5 frontend (generated, git-ignored)
 examples/host-app/             a plain UI5 app using the package like any consumer
@@ -29,8 +29,8 @@ test/e2e/                      Playwright tests of the example against a live ba
 ```
 
 The two workspaces are linked by npm: the example depends on
-`@abap2ui5/reuse-custom-control@^0.1.0` exactly as an app from the registry
-would, and npm resolves it to `packages/reuse-custom-control`.
+`@abap2ui5/embed@^0.1.0` exactly as an app from the registry
+would, and npm resolves it to `packages/embed`.
 
 ## The frontend is not written here
 
@@ -38,7 +38,7 @@ The control is a thin wrapper around the `z2ui5` UI5 component - the whole
 abap2UI5 frontend. Its only source is
 [`app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp) in
 abap2UI5. `npm run sync` copies it from the commit in `A2UI5_PIN` into
-`packages/reuse-custom-control/frontend/` and builds its
+`packages/embed/frontend/` and builds its
 `Component-preload.js`; that folder is git-ignored and overwritten on every
 sync. A change to the frontend is a pull request to abap2UI5, followed by a
 bump of `A2UI5_PIN` here.

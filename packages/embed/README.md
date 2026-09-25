@@ -1,4 +1,4 @@
-# @abap2ui5/reuse-custom-control
+# @abap2ui5/embed
 
 Run [abap2UI5](https://github.com/abap2UI5/abap2UI5) apps inside any UI5 app.
 
@@ -16,7 +16,7 @@ controls:
 ## Install
 
 ```bash
-npm install @abap2ui5/reuse-custom-control
+npm install @abap2ui5/embed
 ```
 
 That is all the UI5 CLI needs: the package is a UI5 project of type `module`
@@ -93,7 +93,7 @@ the browser must reach the service through your app's origin:
 - **`ui5 serve`** - a proxy middleware forwards `/sap` to the system. The
   proxy rewrites `Host` but passes the browser's `Origin` on, so it also has
   to drop `Origin` and `Referer`; the
-  [example app](https://github.com/abap2UI5/test-cc/tree/main/examples/host-app)
+  [example app](https://github.com/abap2UI5/embed/tree/main/examples/host-app)
   shows both pieces
 
 The frontend in this package and the abap2UI5 on the system talk over a

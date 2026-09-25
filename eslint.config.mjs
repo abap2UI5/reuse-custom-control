@@ -19,7 +19,7 @@ export default [
       ".abap2ui5/**",
       "**/dist/**",
       // generated from abap2UI5 app/webapp - linted there, not here
-      "packages/reuse-custom-control/frontend/**",
+      "packages/embed/frontend/**",
       // the frontend-cc branches scripts/build-branches.mjs builds
       "out/**",
       "playwright-report/**",

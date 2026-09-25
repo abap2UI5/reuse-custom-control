@@ -1,4 +1,4 @@
-# AGENTS.md — AI Assistant Guide for the abap2UI5 reuse custom control
+# AGENTS.md — AI Assistant Guide for @abap2ui5/embed
 
 > This file follows the cross-tool AGENTS.md convention and is the single
 > agent instruction file of this repository. `CLAUDE.md` next to it is a
@@ -6,8 +6,8 @@
 
 ## What this repository is
 
-The source of the npm package **`@abap2ui5/reuse-custom-control`**
-(`packages/reuse-custom-control`): the UI5 custom control
+The source of the npm package **`@abap2ui5/embed`**
+(`packages/embed`): the UI5 custom control
 `z2ui5.reuse.Container`, which runs an abap2UI5 app - an ABAP class
 implementing `z2ui5_if_app` - inside any UI5 app. Next to it an example app
 (`examples/host-app`) that consumes the package the way an app from the
@@ -16,7 +16,7 @@ against a live abap2UI5 backend.
 
 **Language:** English for all code, comments, docs, commit messages, PRs.
 
-## Never edit `packages/reuse-custom-control/frontend/`
+## Never edit `packages/embed/frontend/`
 
 It is the abap2UI5 frontend - the `z2ui5` UI5 component the control wraps -
 copied by `scripts/sync-frontend.mjs` from
@@ -33,9 +33,9 @@ limitation in the control when the fix belongs in abap2UI5 - say so instead.
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `A2UI5_PIN`                               | Full sha of the abap2UI5 commit the package ships                                                                                             |
 | `scripts/sync-frontend.mjs`               | Copies `app/webapp` at the pin (or `ABAP2UI5_DIR`) into `frontend/`, builds its `Component-preload.js`                                        |
-| `packages/reuse-custom-control/ui5.yaml`  | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/`                                       |
-| `packages/reuse-custom-control/src/`      | The control (`Container.js`) and its stylesheet                                                                                               |
-| `packages/reuse-custom-control/README.md` | The consumer documentation - what npm shows                                                                                                   |
+| `packages/embed/ui5.yaml`  | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/`                                       |
+| `packages/embed/src/`      | The control (`Container.js`) and its stylesheet                                                                                               |
+| `packages/embed/README.md` | The consumer documentation - what npm shows                                                                                                   |
 | `examples/host-app/`                      | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check                   |
 | `test/e2e/`                               | Playwright tests of the example                                                                                                               |
 | `scripts/build-branches.mjs`              | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below)           |
