@@ -1,0 +1,155 @@
+name: frontend_cc_deploy
+
+# Publishes the example app - with the control and the abap2UI5 frontend in
+# it - into abap2UI5/frontend-cc, the way abap2UI5's frontend_deploy publishes
+# the frontend alone into abap2UI5/frontend. A relay of two workflows:
+#
+#   1. THIS workflow builds the four trees (scripts/build-branches.mjs),
+#      stamps them and writes them as result/<branch> folders into ONE commit
+#      on frontend-cc's main, so main's history over there shows every
+#      delivered change as one diff.
+#   2. frontend-cc's own `deliver` workflow, triggered by that push, turns
+#      each folder into its branch: one commit on top of main, tree = the
+#      folder's content. Every branch is always exactly one commit ahead of
+#      main.
+#
+# A run whose stamped trees match what result/ already carries pushes
+# nothing: the comparison stamps a copy with the commit the published VERSION
+# names, so a run that would only move the provenance forward is not a
+# commit.
+#
+# The push needs ACTION_KEY_FRONTEND_CC: the private half of a deploy key
+# with write access on abap2UI5/frontend-cc (Settings > Deploy keys there,
+# the secret here). Without it the job builds and checks the trees and stops
+# with a message before the push.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # everything the build consumes
+      - "examples/host-app/**"
+      - "packages/reuse-custom-control/src/**"
+      - "scripts/**"
+      - "delivery/**"
+      - "A2UI5_PIN"
+      - "LICENSE"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/frontend_cc_deploy.yaml"
+  schedule:
+    - cron: "0 6 1 * *" # monthly safety net
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend_cc_deploy
+  cancel-in-progress: false
+
+# GitHub's SSH host keys as literals rather than an ssh-keyscan at run time
+# (trust on first use, every run) - the same three abap2UI5's frontend_deploy
+# pins. Published at https://api.github.com/meta (ssh_keys), fingerprints at
+# https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+env:
+  GITHUB_SSH_HOST_KEYS: |
+    github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+    github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+    github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+
+jobs:
+  publish:
+    if: github.repository == 'abap2UI5/reuse-custom-control'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET: git@github.com:abap2UI5/frontend-cc.git
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # the same build the pull-request check ran (ci.yaml, job branches),
+      # abap2UI5's BSP page invariants included
+      - name: Build the four trees
+        run: npm run branches
+
+      - name: Lint the ABAP of the standard tree
+        working-directory: out/standard
+        run: npx --yes @abaplint/cli@2.120.59
+
+      - name: Publish result/ to frontend-cc main
+        env:
+          DEPLOY_KEY: ${{ secrets.ACTION_KEY_FRONTEND_CC }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::ACTION_KEY_FRONTEND_CC is not set - the trees are built and checked, nothing is pushed"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$GITHUB_SSH_HOST_KEYS" >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+
+          clone="$RUNNER_TEMP/frontend-cc-main"
+          rm -rf "$clone"
+          git clone --quiet --depth 1 --branch main "$TARGET" "$clone"
+          git -C "$clone" config user.name 'github-actions[bot]'
+          git -C "$clone" config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          for b in cloud cloud_v2 standard standard_v2; do
+            dest="$clone/result/$b"
+            published=""
+            if [ -f "$dest/VERSION" ]; then
+              published=$(sed -n 's|^built from: abap2UI5/reuse-custom-control@||p' "$dest/VERSION")
+            fi
+            rm -rf "$dest"
+            mkdir -p "$clone/result"
+            cp -a "out/$b" "$dest"
+            if printf '%s' "$published" | grep -Eq '^[0-9a-f]{40}$'; then
+              node scripts/branch-stamp.mjs "$dest" "$b" "$published"
+              if [ -z "$(git -C "$clone" status --porcelain -uall -- "result/$b")" ]; then
+                echo "$b: unchanged"
+                continue
+              fi
+            fi
+            node scripts/branch-stamp.mjs "$dest" "$b" "$GITHUB_SHA"
+            echo "$b: updated"
+          done
+
+          # main's README is the one every branch carries, without the
+          # banner - written from delivery/README.md like the branches, so
+          # there is no second copy to drift
+          cp delivery/README.md "$clone/README.md"
+
+          if [ -z "$(git -C "$clone" status --porcelain -uall)" ]; then
+            echo "result/ matches the published state, nothing to push"
+            exit 0
+          fi
+
+          # the subject of the commit behind this delivery, so the history
+          # over there reads like the history here
+          subject=$(git log -1 --format=%s "$GITHUB_SHA")
+          git -C "$clone" add -A
+          git -C "$clone" commit --quiet -m "$subject" -m "abap2UI5/reuse-custom-control@$GITHUB_SHA"
+
+          # main over there also takes maintenance merges (docs only, never
+          # result/), so a rejected push is rebased and retried
+          for attempt in 1 2 3; do
+            if git -C "$clone" push --quiet origin HEAD:refs/heads/main; then
+              echo "pushed $(git -C "$clone" rev-parse HEAD) to main"
+              exit 0
+            fi
+            echo "push rejected, main moved - rebasing (attempt $attempt)"
+            git -C "$clone" fetch --quiet origin main
+            git -C "$clone" rebase --quiet FETCH_HEAD
+          done
+          echo "::error::could not push to frontend-cc main"
+          exit 1

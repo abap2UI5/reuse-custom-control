@@ -19,10 +19,12 @@ How to use the package is in its [README](packages/reuse-custom-control/README.m
 ```
 A2UI5_PIN                      abap2UI5 commit whose frontend the package ships
 scripts/sync-frontend.mjs      brings that frontend into the package
+scripts/build-branches.mjs     builds the abap2UI5/frontend-cc branches (out/, git-ignored)
 packages/reuse-custom-control/ the npm package - a UI5 CLI project of type "module"
   src/                           the control (written here)
   frontend/                      the abap2UI5 frontend (generated, git-ignored)
 examples/host-app/             a plain UI5 app using the package like any consumer
+delivery/README.md             the README of every frontend-cc branch
 test/e2e/                      Playwright tests of the example against a live backend
 ```
 
@@ -74,6 +76,7 @@ Against a real system instead: copy `examples/host-app/.env.example` to
 | `npm run lint` / `npm run format:check` | ESLint and Prettier |
 | `npm run build` | `ui5 build --all` of the example - proves a consumer build picks the package up |
 | `npm run pack:check` | what `npm publish` would put into the package |
+| `npm run branches` | the four frontend-cc trees in `out/`, with abap2UI5's BSP page invariants |
 | `npx playwright test` | the example in a browser on UI5 1.136 and 1.71, against the backend on port 3000 (`PW_CHROMIUM_PATH` for an installed Chromium) |
 
 CI (`.github/workflows/ci.yaml`) runs all of them; its e2e job builds the
@@ -85,6 +88,41 @@ Create a GitHub release. `publish.yaml` syncs the frontend at `A2UI5_PIN`,
 runs the checks and publishes the package with npm provenance. It needs the
 `NPM_TOKEN` secret of an npm user who may publish to the `@abap2ui5` scope;
 without it the job stops with a message instead of publishing.
+
+## Delivery: abap2UI5/frontend-cc
+
+The example is also delivered ready to install, with the control and the
+abap2UI5 frontend vendored into it, as the four branches of
+[abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) - built the
+way [abap2UI5/frontend](https://github.com/abap2UI5/frontend) delivers the
+frontend alone:
+
+| Branch | |
+|---|---|
+| `standard` | BSP `Z2UI5_CC` with its own HTTP service `/sap/bc/z2ui5_cc` (handler `Z2UI5_CC_CL_LP_HANDLER`), classic bootstrap - pulled with abapGit |
+| `standard_v2` | the same, legacy-free bootstrap (UI5 2.x from the CDN) |
+| `cloud` | the example's UI5 project in `app/`, deployed to ABAP Cloud with the UI5 tooling; talks to the HTTP service `Z2UI5` of abap2UI5/frontend's `cloud` branch |
+| `cloud_v2` | the same, legacy-free bootstrap |
+
+`npm run branches` (`scripts/build-branches.mjs`) builds all four into the
+git-ignored `out/`. Every tree carries one webapp: the example at the root,
+the abap2UI5 frontend at `A2UI5_PIN` with the control in `frontend/` (the
+z2ui5 namespace, registered at `./frontend/` - a deployed app cannot serve its
+own files under `resources/`), and `frontend/preload.js`, the bundle the page
+boots through. The BSP branches go through abap2UI5's own tools at the pin -
+`app2bsp` for the bundle and the pages, `bsp_rename` for the name, and its
+page invariants (`check-pages.mjs`) run on every build. Every patch the build
+makes to the example is guarded: a change to `index.html`, `manifest.json`,
+`package.json` or `ui5.yaml` there that the build no longer recognises fails
+it instead of delivering something half-patched.
+
+On a push to `main` that touches what the build consumes,
+`frontend_cc_deploy.yaml` builds the trees, stamps them
+(`scripts/branch-stamp.mjs`) and writes them as `result/<branch>` into one
+commit on frontend-cc's `main`, together with its `README.md` from
+`delivery/README.md`; frontend-cc's `deliver` workflow fans each folder out
+into its branch. The push needs the `ACTION_KEY_FRONTEND_CC` secret: the
+private half of a deploy key with write access on frontend-cc.
 
 ## Next steps
 
