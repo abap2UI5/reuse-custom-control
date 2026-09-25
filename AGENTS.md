@@ -29,20 +29,20 @@ limitation in the control when the fix belongs in abap2UI5 - say so instead.
 
 ## Layout
 
-| Path | |
-|---|---|
-| `A2UI5_PIN` | Full sha of the abap2UI5 commit the package ships |
-| `scripts/sync-frontend.mjs` | Copies `app/webapp` at the pin (or `ABAP2UI5_DIR`) into `frontend/`, builds its `Component-preload.js` |
-| `packages/reuse-custom-control/ui5.yaml` | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/` |
-| `packages/reuse-custom-control/src/` | The control (`Container.js`) and its stylesheet |
-| `packages/reuse-custom-control/README.md` | The consumer documentation - what npm shows |
-| `examples/host-app/` | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check |
-| `test/e2e/` | Playwright tests of the example |
-| `scripts/build-branches.mjs` | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below) |
-| `scripts/abap2ui5.mjs` | Where both scripts get abap2UI5 from: the pin, or `ABAP2UI5_DIR` |
-| `scripts/branch-stamp.mjs` | The provenance (`VERSION`, README banner) of a frontend-cc branch, written at deploy time |
-| `delivery/README.md` | The README of every frontend-cc branch and of its `main` |
-| `.github/workflows/` | `ci.yaml` (checks, frontend-cc trees, e2e), `publish.yaml` (npm, on a GitHub release), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
+| Path                                      |                                                                                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `A2UI5_PIN`                               | Full sha of the abap2UI5 commit the package ships                                                                                             |
+| `scripts/sync-frontend.mjs`               | Copies `app/webapp` at the pin (or `ABAP2UI5_DIR`) into `frontend/`, builds its `Component-preload.js`                                        |
+| `packages/reuse-custom-control/ui5.yaml`  | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/`                                       |
+| `packages/reuse-custom-control/src/`      | The control (`Container.js`) and its stylesheet                                                                                               |
+| `packages/reuse-custom-control/README.md` | The consumer documentation - what npm shows                                                                                                   |
+| `examples/host-app/`                      | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check                   |
+| `test/e2e/`                               | Playwright tests of the example                                                                                                               |
+| `scripts/build-branches.mjs`              | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below)           |
+| `scripts/abap2ui5.mjs`                    | Where both scripts get abap2UI5 from: the pin, or `ABAP2UI5_DIR`                                                                              |
+| `scripts/branch-stamp.mjs`                | The provenance (`VERSION`, README banner) of a frontend-cc branch, written at deploy time                                                     |
+| `delivery/README.md`                      | The README of every frontend-cc branch and of its `main`                                                                                      |
+| `.github/workflows/`                      | `ci.yaml` (checks, frontend-cc trees, e2e), `publish.yaml` (npm, on a GitHub release), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
 
 ## Rules for `src/`
 
@@ -105,6 +105,13 @@ All text files are LF-only, formatted with Prettier (`.prettierrc`).
 
 ## Publishing
 
-A GitHub release `v<version>` publishes the version in
-`packages/reuse-custom-control/package.json` (`publish.yaml`, `NPM_TOKEN`).
-Never publish a build synced from `ABAP2UI5_DIR`.
+A GitHub release `v<version>` publishes the version in the package's
+`package.json` (`publish.yaml`) by **trusted publishing** - OIDC with
+provenance, no token. npm lets a package be pointed at a workflow only once
+the package exists, so the first version is published by hand once
+(`npm login`, `npm run sync -- --force && npm run build`, then
+`npm publish --workspace packages/<the package> --access public`), and the
+package's Settings → Trusted Publisher on npmjs.com is pointed at this
+repository and `publish.yaml`. Until then the workflow's publish step ends in
+a warning naming the bootstrap; once the package exists on the registry, a
+failed publish is an error. Never publish a build synced from `ABAP2UI5_DIR`.
