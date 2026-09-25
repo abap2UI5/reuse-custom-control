@@ -1,6 +1,7 @@
 node_modules/
 dist/
 packages/reuse-custom-control/frontend/
+out/
 playwright-report/
 test-results/
 package-lock.json

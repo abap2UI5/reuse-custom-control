@@ -23,7 +23,6 @@ import { execFileSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -31,23 +30,20 @@ import {
 } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
+import {
+  abap2ui5,
+  localDir as abap2ui5Dir,
+  readPin,
+  root,
+} from "./abap2ui5.mjs";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const target = join(root, "packages", "reuse-custom-control", "frontend");
 const stampFile = join(target, ".a2ui5-pin");
-const REPO = "https://github.com/abap2UI5/abap2UI5.git";
 const EXCLUDE = new Set(["index.html"]);
 
-const pin = readFileSync(join(root, "A2UI5_PIN"), "utf8").trim();
-if (!/^[0-9a-f]{40}$/.test(pin)) {
-  throw new Error(`A2UI5_PIN is not a full commit sha: '${pin}'`);
-}
-
-const localDir = process.env.ABAP2UI5_DIR
-  ? resolve(process.env.ABAP2UI5_DIR)
-  : null;
+const pin = readPin();
+const localDir = abap2ui5Dir();
 // a local checkout is stamped by its path, never by the pin - its content is
 // whatever is checked out there, so it must not pass for the pinned commit
 const wanted = localDir ? `local:${localDir}` : pin;
@@ -64,7 +60,10 @@ if (
 
 const work = mkdtempSync(join(tmpdir(), "a2ui5-sync-"));
 try {
-  const webapp = localDir ? localWebapp(localDir) : fetchWebapp(pin, work);
+  const webapp = join(abap2ui5(["app/webapp"], work, "sync"), "app", "webapp");
+  if (!existsSync(join(webapp, "Component.js"))) {
+    throw new Error(`sync: no Component.js in ${webapp}`);
+  }
 
   rmSync(target, { recursive: true, force: true });
   cpSync(webapp, target, {
@@ -77,49 +76,6 @@ try {
   console.log(`sync: frontend written to ${relative(root, target)}`);
 } finally {
   rmSync(work, { recursive: true, force: true });
-}
-
-function git(args, cwd) {
-  return execFileSync("git", args, {
-    cwd,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
-  }).trim();
-}
-
-function localWebapp(dir) {
-  const webapp = join(dir, "app", "webapp");
-  if (!existsSync(join(webapp, "Component.js"))) {
-    throw new Error(`ABAP2UI5_DIR: no app/webapp/Component.js below ${dir}`);
-  }
-  let head = "unknown";
-  try {
-    head = git(["rev-parse", "HEAD"], dir);
-  } catch {
-    // not a git checkout - the warning below still applies
-  }
-  if (head !== pin) {
-    console.warn(
-      `sync: WARNING - using ${dir} at ${head.slice(0, 8)}, ` +
-        `A2UI5_PIN is ${pin.slice(0, 8)}. Do not publish this build.`,
-    );
-  }
-  return webapp;
-}
-
-function fetchWebapp(sha, dir) {
-  const clone = join(dir, "abap2UI5");
-  mkdirSync(clone);
-  git(["init", "--quiet"], clone);
-  git(["remote", "add", "origin", REPO], clone);
-  git(["sparse-checkout", "set", "app/webapp"], clone);
-  console.log(`sync: fetching abap2UI5@${sha.slice(0, 8)} (app/webapp)`);
-  git(
-    ["fetch", "--quiet", "--depth", "1", "--filter=blob:none", "origin", sha],
-    clone,
-  );
-  git(["checkout", "--quiet", "FETCH_HEAD"], clone);
-  return join(clone, "app", "webapp");
 }
 
 // A throwaway application project around a copy of the frontend: `ui5 build`

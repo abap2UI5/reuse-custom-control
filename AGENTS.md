@@ -38,7 +38,11 @@ limitation in the control when the fix belongs in abap2UI5 - say so instead.
 | `packages/reuse-custom-control/README.md` | The consumer documentation - what npm shows |
 | `examples/host-app/` | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check |
 | `test/e2e/` | Playwright tests of the example |
-| `.github/workflows/` | `ci.yaml` (checks + e2e), `publish.yaml` (npm, on a GitHub release) |
+| `scripts/build-branches.mjs` | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below) |
+| `scripts/abap2ui5.mjs` | Where both scripts get abap2UI5 from: the pin, or `ABAP2UI5_DIR` |
+| `scripts/branch-stamp.mjs` | The provenance (`VERSION`, README banner) of a frontend-cc branch, written at deploy time |
+| `delivery/README.md` | The README of every frontend-cc branch and of its `main` |
+| `.github/workflows/` | `ci.yaml` (checks, frontend-cc trees, e2e), `publish.yaml` (npm, on a GitHub release), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
 
 ## Rules for `src/`
 
@@ -65,6 +69,27 @@ limitation in the control when the fix belongs in abap2UI5 - say so instead.
 - A UI5 module id is case-sensitive and a wrong one only fails in the browser
   (`includeStylesheet`, not `includeStyleSheet`) - run the e2e tests.
 
+## The frontend-cc branches
+
+`npm run branches` builds `standard`, `standard_v2` (BSP `Z2UI5_CC` with its
+own ICF node and handler), `cloud` and `cloud_v2` (the example's UI5 project
+in `app/`) - the example with the control and the abap2UI5 frontend vendored
+into `frontend/`, delivered like abap2UI5/frontend delivers the frontend.
+
+- **frontend-cc is a delivery repository.** Nothing there is edited by hand;
+  a change to a branch is a change to the example, the control,
+  `scripts/build-branches.mjs` or `delivery/README.md` here.
+- **The BSP tooling is abap2UI5's, at the pin** (`tools/app2bsp`,
+  `tools/bsp_rename`, `tools/check-pages.mjs`, `tools/app2app_v2/patch-v2.mjs`,
+  `frontend/abap/standard`). Do not copy or re-implement it here; a fix to it
+  is a pull request to abap2UI5 and a pin bump.
+- **Every patch of the example is guarded** (`mustReplace` and the explicit
+  checks in `assembleWebapp`): if a change to `examples/host-app` breaks one,
+  adapt the build in the same pull request - do not loosen the guard.
+- **The build is deterministic and unstamped.** Identical sources give
+  identical trees; the commit is stamped only by the deploy
+  (`branch-stamp.mjs`), which relies on that to skip unchanged deliveries.
+
 ## Validation
 
 ```bash
@@ -72,6 +97,7 @@ npm ci
 npm run lint && npm run format:check
 npm run build          # ui5 build --all of the example
 npm run pack:check     # package contents
+npm run branches       # the frontend-cc trees, BSP page invariants included
 npx playwright test    # needs the abap2UI5 backend on :3000 - see README
 ```
 
