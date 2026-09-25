@@ -17,15 +17,14 @@
 //   index.html, Component.js, manifest.json, view/, controller/, css/
 //                  examples/host-app/webapp - the example, unchanged but for
 //                  the patches below
-//   frontend/      abap2UI5 app/webapp at the commit of @abap2ui5/frontend (without its index.html)
-//                  - the z2ui5 component the control wraps
-//   frontend/reuse/
-//                  packages/embed/src - the control
+//   frontend/      abap2UI5 app/webapp at the commit of @abap2ui5/embed-control
+//                  (without its index.html) - the z2ui5 component and, in
+//                  reuse/, the control that wraps it
 //   frontend/preload.js
-//                  all modules of the two above in one bundle
+//                  all its modules in one bundle
 //
-// That is the layout the npm package is served in (/resources/z2ui5/ =
-// frontend, /resources/z2ui5/reuse/ = the control), one folder down: z2ui5
+// That is the layout the npm package is served in (/resources/z2ui5/ = the
+// frontend, the control at /resources/z2ui5/reuse/), one folder down: z2ui5
 // cannot live under resources/ inside a deployed app, because the ui5_ui5
 // handler answers every <app>/resources/ path from the UI5 library of the
 // system. So the host registers the z2ui5 namespace at ./frontend/ instead.
@@ -50,6 +49,7 @@ import {
   readdirSync,
   rmSync,
   writeFileSync,
+  existsSync,
 } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -66,7 +66,6 @@ export const BRANCHES = ["cloud", "cloud_v2", "standard", "standard_v2"];
 
 const out = join(root, "out");
 const hostApp = join(root, "examples", "host-app");
-const control = join(root, "packages", "embed", "src");
 const delivery = join(root, "delivery");
 
 // the frontend's backend path, and what the cloud branches point it at -
@@ -121,11 +120,17 @@ function run(args, cwd) {
 // the webapp every branch is made of
 // ---------------------------------------------------------------------------
 
-// The z2ui5 component with the control in it - app/webapp at the pin, its
-// index.html included (preload.js patches it; it is dropped afterwards).
+// The z2ui5 component with the control in it (app/webapp/reuse since the
+// control moved into abap2UI5) - app/webapp at the pin, its index.html
+// included (preload.js patches it; it is dropped afterwards).
 function frontendWebapp(a2, dir) {
   cpSync(join(a2, "app", "webapp"), dir, { recursive: true });
-  cpSync(control, join(dir, "reuse"), { recursive: true });
+  if (!existsSync(join(dir, "reuse", "Container.js"))) {
+    throw new Error(
+      "build-branches: abap2UI5 app/webapp at the pin has no reuse/Container.js - " +
+        "the control ships in the webapp from the release @abap2ui5/embed-control names",
+    );
+  }
 }
 
 // frontend/preload.js: abap2UI5's app2bsp/preload.js run on the frontend
@@ -290,16 +295,16 @@ function buildCloud(ctx, branch) {
   writeFileSync(join(app, ".gitignore"), "node_modules/\ndist/\n.env\n");
 
   const pkg = readJson(join(hostApp, "package.json"));
-  if (!pkg.dependencies?.["@abap2ui5/embed"]) {
+  if (!pkg.dependencies?.["@abap2ui5/embed-control"]) {
     throw new Error(
       "build-branches: examples/host-app/package.json no longer depends on " +
-        "@abap2ui5/embed",
+        "@abap2ui5/embed-control",
     );
   }
   delete pkg.dependencies;
   pkg.description =
     "abap2UI5 inside a UI5 app - the example of " +
-    "@abap2ui5/embed, with the control and the abap2UI5 " +
+    "@abap2ui5/embed-control, with the control and the abap2UI5 " +
     "frontend in webapp/frontend";
   writeJson(join(app, "package.json"), pkg);
 

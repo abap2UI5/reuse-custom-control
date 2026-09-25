@@ -30,12 +30,11 @@ abap2UI5 frontend on its own, and it is built the same way.
 > abap2UI5/embed              abap2UI5/frontend-cc
 >                      frontend_cc_deploy                       deliver
 >   examples/host-app  ─────────────────▶  main           ──────────▶  standard
->   packages/.../src                        result/<branch>             standard_v2
+>                                           result/<branch>             standard_v2
 >   + abap2UI5 at the commit of             (all four trees,            cloud
->     @abap2ui5/frontend                    one commit per              cloud_v2
->     (app/webapp, tools/)                  change)
->                                                                       (each: main
->                                                                       + one commit)
+>     @abap2ui5/embed-control               one commit per              cloud_v2
+>     (app/webapp with the control,         change)                     (each: main
+>     tools/)                                                           + one commit)
 > ```
 
 #### Branch
@@ -101,8 +100,8 @@ its `endpoint` property.
 
 | Content | Owned by |
 |---|---|
-| the app, the control, the build | [abap2UI5/embed](https://github.com/abap2UI5/embed) — `examples/host-app`, `packages/embed/src`, `scripts/build-branches.mjs` |
-| the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp`, `tools/`; reaches this repository with the next bump of `@abap2ui5/frontend` in embed |
+| the app, the build | [abap2UI5/embed](https://github.com/abap2UI5/embed) — `examples/host-app`, `scripts/build-branches.mjs` |
+| the control, the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp` (the control in `app/webapp/reuse/`), `tools/`; reaches this repository with the next bump of `@abap2ui5/embed-control` in embed |
 | `result/` on `main`, every branch | machine-written — a hand edit is overwritten by the next delivery |
 | this repository's docs | here, as a maintenance pull request |
 

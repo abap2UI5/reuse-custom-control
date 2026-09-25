@@ -27,7 +27,7 @@ export default [
   },
   // UI5 modules: the control and the example app, run in the browser
   {
-    files: ["packages/*/src/**/*.js", "examples/*/webapp/**/*.js"],
+    files: ["examples/*/webapp/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

@@ -29,7 +29,6 @@ on:
     paths:
       # everything the build consumes
       - "examples/host-app/**"
-      - "packages/embed/src/**"
       - "scripts/**"
       - "delivery/**"
       - "LICENSE"

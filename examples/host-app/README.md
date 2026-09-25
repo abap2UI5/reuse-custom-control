@@ -1,7 +1,7 @@
 # Example: abap2UI5 inside a UI5 app
 
 A plain UI5 app that embeds abap2UI5 apps with
-[`@abap2ui5/embed`](../../packages/embed).
+[`@abap2ui5/embed-control`](https://www.npmjs.com/package/@abap2ui5/embed-control).
 How to run it is in the [repository README](../../README.md#run-the-example).
 
 What to look at:
