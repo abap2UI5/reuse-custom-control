@@ -11,10 +11,9 @@
     "examples/*"
   ],
   "scripts": {
-    "sync": "node scripts/sync-frontend.mjs",
-    "start": "npm run sync && npm run start --workspace examples/host-app",
-    "build": "npm run sync && npm run build --workspace examples/host-app",
-    "pack:check": "npm run sync && npm pack --dry-run --workspace packages/embed",
+    "start": "npm run start --workspace examples/host-app",
+    "build": "npm run build --workspace examples/host-app",
+    "pack:check": "npm pack --dry-run --workspace packages/embed",
     "branches": "node scripts/build-branches.mjs",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,mjs,json}\"",

@@ -1,6 +1,5 @@
 node_modules/
 dist/
-packages/embed/frontend/
 out/
 playwright-report/
 test-results/

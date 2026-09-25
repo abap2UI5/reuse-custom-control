@@ -17,7 +17,7 @@
 //   index.html, Component.js, manifest.json, view/, controller/, css/
 //                  examples/host-app/webapp - the example, unchanged but for
 //                  the patches below
-//   frontend/      abap2UI5 app/webapp at A2UI5_PIN (without its index.html)
+//   frontend/      abap2UI5 app/webapp at the commit of @abap2ui5/frontend (without its index.html)
 //                  - the z2ui5 component the control wraps
 //   frontend/reuse/
 //                  packages/embed/src - the control

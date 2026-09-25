@@ -32,7 +32,6 @@ on:
       - "packages/embed/src/**"
       - "scripts/**"
       - "delivery/**"
-      - "A2UI5_PIN"
       - "LICENSE"
       - "package.json"
       - "package-lock.json"

@@ -17,12 +17,10 @@ How to use the package is in its [README](packages/embed/README.md)
 ## Layout
 
 ```
-A2UI5_PIN                      abap2UI5 commit whose frontend the package ships
-scripts/sync-frontend.mjs      brings that frontend into the package
 scripts/build-branches.mjs     builds the abap2UI5/frontend-cc branches (out/, git-ignored)
-packages/embed/ the npm package - a UI5 CLI project of type "module"
+packages/embed/                the npm package - a UI5 CLI project of type "module"
   src/                           the control (written here)
-  frontend/                      the abap2UI5 frontend (generated, git-ignored)
+                                 + @abap2ui5/frontend, the abap2UI5 frontend, as a dependency
 examples/host-app/             a plain UI5 app using the package like any consumer
 delivery/README.md             the README of every frontend-cc branch
 test/e2e/                      Playwright tests of the example against a live backend
@@ -37,15 +35,20 @@ would, and npm resolves it to `packages/embed`.
 The control is a thin wrapper around the `z2ui5` UI5 component - the whole
 abap2UI5 frontend. Its only source is
 [`app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp) in
-abap2UI5. `npm run sync` copies it from the commit in `A2UI5_PIN` into
-`packages/embed/frontend/` and builds its
-`Component-preload.js`; that folder is git-ignored and overwritten on every
-sync. A change to the frontend is a pull request to abap2UI5, followed by a
-bump of `A2UI5_PIN` here.
+abap2UI5, which publishes it from every release as
+[`@abap2ui5/frontend`](https://www.npmjs.com/package/@abap2ui5/frontend): the
+webapp unchanged plus its `Component-preload.js`, as a UI5 module that serves
+`/resources/z2ui5/`. `packages/embed/package.json` depends on it at an exact
+version, and that version is the one pin in this repository - the package
+records its abap2UI5 commit, which the frontend-cc build and the e2e backend
+read (`scripts/abap2ui5.mjs`). A change to the frontend is a pull request to
+abap2UI5, a release there, then a bump of the dependency here.
 
-To try an unmerged abap2UI5 change, point the sync at a local checkout:
-`ABAP2UI5_DIR=../abap2UI5 npm run sync` (it warns that the result is not the
-pinned commit - do not publish it).
+To try an unmerged abap2UI5 change, pack it there and install the tarball
+here - `npm run pack:frontend` in abap2UI5, then
+`npm install ../abap2UI5/npm-package/abap2ui5-frontend-*.tgz --workspace packages/embed`
+(do not commit the resulting `file:` dependency). For the frontend-cc build,
+`ABAP2UI5_DIR=../abap2UI5 npm run branches` takes the tools from a checkout.
 
 ## Run the example
 
@@ -80,14 +83,14 @@ Against a real system instead: copy `examples/host-app/.env.example` to
 | `npx playwright test` | the example in a browser on UI5 1.136 and 1.71, against the backend on port 3000 (`PW_CHROMIUM_PATH` for an installed Chromium) |
 
 CI (`.github/workflows/ci.yaml`) runs all of them; its e2e job builds the
-backend from the pinned abap2UI5 commit.
+backend from the abap2UI5 commit `@abap2ui5/frontend` records.
 
 ## Publish
 
-Create a GitHub release. `publish.yaml` syncs the frontend at `A2UI5_PIN`,
-runs the checks and publishes the package with npm provenance. It needs the
-`NPM_TOKEN` secret of an npm user who may publish to the `@abap2ui5` scope;
-without it the job stops with a message instead of publishing.
+Create a GitHub release `v<version>`. `publish.yaml` runs the checks and
+publishes the package by trusted publishing, with npm provenance and no token.
+The first version is published by hand once (AGENTS.md, "Publishing"); until
+then the job ends in a warning instead of publishing.
 
 ## Delivery: abap2UI5/frontend-cc
 
@@ -106,10 +109,10 @@ frontend alone:
 
 `npm run branches` (`scripts/build-branches.mjs`) builds all four into the
 git-ignored `out/`. Every tree carries one webapp: the example at the root,
-the abap2UI5 frontend at `A2UI5_PIN` with the control in `frontend/` (the
+the abap2UI5 frontend at the commit `@abap2ui5/frontend` records, with the control in `frontend/` (the
 z2ui5 namespace, registered at `./frontend/` - a deployed app cannot serve its
 own files under `resources/`), and `frontend/preload.js`, the bundle the page
-boots through. The BSP branches go through abap2UI5's own tools at the pin -
+boots through. The BSP branches go through abap2UI5's own tools at that commit -
 `app2bsp` for the bundle and the pages, `bsp_rename` for the name, and its
 page invariants (`check-pages.mjs`) run on every build. Every patch the build
 makes to the example is guarded: a change to `index.html`, `manifest.json`,

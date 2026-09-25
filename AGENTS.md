@@ -16,30 +16,36 @@ against a live abap2UI5 backend.
 
 **Language:** English for all code, comments, docs, commit messages, PRs.
 
-## Never edit `packages/embed/frontend/`
+## The frontend is a dependency, not a copy
 
-It is the abap2UI5 frontend - the `z2ui5` UI5 component the control wraps -
-copied by `scripts/sync-frontend.mjs` from
-[abap2UI5 `app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp)
-at the commit in `A2UI5_PIN`. It is git-ignored and overwritten by every
-sync. A change the control needs from the frontend (an `embedded` flag, an
-`endpoint` setting, ...) is a pull request to abap2UI5; once merged, bump
-`A2UI5_PIN` here. Do not patch the copy, and do not work around a frontend
-limitation in the control when the fix belongs in abap2UI5 - say so instead.
+The control wraps the abap2UI5 frontend - the `z2ui5` UI5 component - and
+takes it from npm: `packages/embed/package.json` depends on
+[`@abap2ui5/frontend`](https://www.npmjs.com/package/@abap2ui5/frontend) at an
+**exact** version, which abap2UI5 publishes from every release (its
+`app/webapp` unchanged plus a `Component-preload.js`, as a UI5 module that
+serves `/resources/z2ui5/`). That version is the **only pin** in this
+repository: the package records its abap2UI5 commit under `abap2ui5.commit`,
+and `scripts/abap2ui5.mjs` reads it from there for the frontend-cc build and
+the e2e backend. It used to be two pins - `A2UI5_PIN` and a vendored copy
+synced from it - kept in step by hand.
+
+A change the control needs from the frontend (an `embedded` flag, an
+`endpoint` setting, ...) is a pull request to abap2UI5; once released, bump
+the dependency here (and `npm install` for the lockfile). Do not work around a
+frontend limitation in the control when the fix belongs in abap2UI5 - say so
+instead.
 
 ## Layout
 
 | Path                                      |                                                                                                                                               |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `A2UI5_PIN`                               | Full sha of the abap2UI5 commit the package ships                                                                                             |
-| `scripts/sync-frontend.mjs`               | Copies `app/webapp` at the pin (or `ABAP2UI5_DIR`) into `frontend/`, builds its `Component-preload.js`                                        |
-| `packages/embed/ui5.yaml`  | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/`                                       |
+| `packages/embed/ui5.yaml`  | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`; `/resources/z2ui5/` comes from `@abap2ui5/frontend`                                       |
 | `packages/embed/src/`      | The control (`Container.js`) and its stylesheet                                                                                               |
 | `packages/embed/README.md` | The consumer documentation - what npm shows                                                                                                   |
 | `examples/host-app/`                      | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check                   |
 | `test/e2e/`                               | Playwright tests of the example                                                                                                               |
 | `scripts/build-branches.mjs`              | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below)           |
-| `scripts/abap2ui5.mjs`                    | Where both scripts get abap2UI5 from: the pin, or `ABAP2UI5_DIR`                                                                              |
+| `scripts/abap2ui5.mjs`                    | Where the scripts get abap2UI5 from: the commit `@abap2ui5/frontend` records, or `ABAP2UI5_DIR`                                                                              |
 | `scripts/branch-stamp.mjs`                | The provenance (`VERSION`, README banner) of a frontend-cc branch, written at deploy time                                                     |
 | `delivery/README.md`                      | The README of every frontend-cc branch and of its `main`                                                                                      |
 | `.github/workflows/`                      | `ci.yaml` (checks, frontend-cc trees, e2e), `publish.yaml` (npm, on a GitHub release), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
@@ -109,9 +115,10 @@ A GitHub release `v<version>` publishes the version in the package's
 `package.json` (`publish.yaml`) by **trusted publishing** - OIDC with
 provenance, no token. npm lets a package be pointed at a workflow only once
 the package exists, so the first version is published by hand once
-(`npm login`, `npm run sync -- --force && npm run build`, then
+(`npm login`, `npm ci && npm run build`, then
 `npm publish --workspace packages/<the package> --access public`), and the
 package's Settings → Trusted Publisher on npmjs.com is pointed at this
 repository and `publish.yaml`. Until then the workflow's publish step ends in
 a warning naming the bootstrap; once the package exists on the registry, a
-failed publish is an error. Never publish a build synced from `ABAP2UI5_DIR`.
+failed publish is an error. Publish only once the `@abap2ui5/frontend` version it
+depends on is on npm - `npm ci` cannot install it before.

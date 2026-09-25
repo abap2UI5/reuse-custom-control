@@ -14,7 +14,7 @@ name: publish
 # That setting can only be made for a package that ALREADY EXISTS, so the
 # very first version is published by hand, once, after `npm login`:
 #
-#     npm run sync -- --force && npm run build
+#     npm ci && npm run build
 #     npm publish --workspace packages/<the package> --access public
 #
 # (no --provenance there: npm generates an attestation only from a supported
@@ -87,7 +87,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm run sync -- --force
       - run: npm run build
       # what the tarball will contain, in the log, before it is immutable
       - run: npm run pack:check

@@ -1,24 +1,44 @@
-// Where the scripts get abap2UI5 from: the commit in A2UI5_PIN, or a local
-// checkout named by ABAP2UI5_DIR (to try a change before it is merged).
+// Where the scripts get abap2UI5 from: the commit the installed
+// @abap2ui5/frontend was built from, or a local checkout named by
+// ABAP2UI5_DIR (to try a change before it is merged).
 //
-// Shared by sync-frontend.mjs, which takes app/webapp into the npm package,
-// and build-branches.mjs, which takes app/webapp plus the tools that turn a
-// webapp into a BSP (tools/) and the ABAP artefacts around it (frontend/abap)
-// for the branches of abap2UI5/frontend-cc. Both have to agree on the commit,
-// so both read it here.
+// ONE pin for everything: packages/embed/package.json names the exact
+// @abap2ui5/frontend version the npm package depends on, and that package
+// records its abap2UI5 commit under `abap2ui5.commit`. build-branches.mjs
+// takes app/webapp plus the tools that turn a webapp into a BSP (tools/) and
+// the ABAP artefacts around it (frontend/abap) from that commit, and the e2e
+// job builds the backend from it - so the frontend-cc branches, the tests and
+// the npm package cannot pair different frontends. There used to be a second
+// pin, A2UI5_PIN, kept in step with the vendored copy by hand.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = "https://github.com/abap2UI5/abap2UI5.git";
 
+// The abap2UI5 commit of the installed @abap2ui5/frontend - resolved from
+// the workspace, so `npm ci` has to have run.
 export function readPin() {
-  const pin = readFileSync(join(root, "A2UI5_PIN"), "utf8").trim();
+  let manifest;
+  try {
+    manifest = createRequire(join(root, "package.json"))(
+      "@abap2ui5/frontend/package.json",
+    );
+  } catch {
+    throw new Error(
+      "@abap2ui5/frontend is not installed - run npm ci first (its version in " +
+        "packages/embed/package.json is the abap2UI5 release everything here builds from)",
+    );
+  }
+  const pin = manifest.abap2ui5?.commit ?? "";
   if (!/^[0-9a-f]{40}$/.test(pin)) {
-    throw new Error(`A2UI5_PIN is not a full commit sha: '${pin}'`);
+    throw new Error(
+      `@abap2ui5/frontend@${manifest.version} records no abap2UI5 commit: '${pin}'`,
+    );
   }
   return pin;
 }
@@ -57,7 +77,7 @@ export function abap2ui5(paths, work, label) {
     if (head !== pin) {
       console.warn(
         `${label}: WARNING - using ${dir} at ${head.slice(0, 8)}, ` +
-          `A2UI5_PIN is ${pin.slice(0, 8)}. Do not publish this build.`,
+          `@abap2ui5/frontend is built from ${pin.slice(0, 8)}. Do not deploy this build.`,
       );
     }
     return dir;

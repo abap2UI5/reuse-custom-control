@@ -19,10 +19,12 @@ controls:
 npm install @abap2ui5/embed
 ```
 
-That is all the UI5 CLI needs: the package is a UI5 project of type `module`
+It brings [`@abap2ui5/frontend`](https://www.npmjs.com/package/@abap2ui5/frontend)
+along - the abap2UI5 frontend the control wraps, at the version it was tested
+with. That is all the UI5 CLI needs: both packages are UI5 projects of type `module`
 (the approach of [distribute and reuse UI5 custom controls via npm](https://community.sap.com/t5/technology-blog-posts-by-members/distribute-and-reuse-ui5-custom-controls-via-npm/ba-p/13472814)),
-so `ui5 serve` serves it under `resources/z2ui5/` and `ui5 build --all`
-copies it into `dist/resources/`. No `resourceroots` entry in a standalone
+so `ui5 serve` serves them under `resources/z2ui5/` and `ui5 build --all`
+copies them into `dist/resources/`. No `resourceroots` entry in a standalone
 `index.html`, no `ui5.dependencies` in `package.json` (UI5 CLI 3 and later
 pick up every dependency that has a `ui5.yaml`).
 
@@ -141,7 +143,8 @@ an embedded app still
 | Path | |
 |---|---|
 | `src/` | The control, `z2ui5/reuse/Container.js` and its stylesheet |
-| `frontend/` | The abap2UI5 frontend (the `z2ui5` UI5 component), copied unchanged from [abap2UI5 `app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp) at the commit in `frontend/.a2ui5-pin`, plus its `Component-preload.js` |
+| `ui5.yaml` | The UI5 tooling project: `/resources/z2ui5/reuse/` is `src/` |
+| dependency `@abap2ui5/frontend` | The abap2UI5 frontend (the `z2ui5` UI5 component): [abap2UI5 `app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp) of one release, unchanged, plus its `Component-preload.js` - pinned to the exact version this control is tested against |
 
 ## License
 

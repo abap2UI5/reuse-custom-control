@@ -6,7 +6,7 @@
 //
 // A thin wrapper around a sap.ui.core.ComponentContainer that holds the
 // abap2UI5 frontend: the z2ui5 UIComponent this package ships under
-// /resources/z2ui5/ (app/webapp of abap2UI5, see scripts/sync-frontend.mjs).
+// /resources/z2ui5/ (app/webapp of abap2UI5, the dependency @abap2ui5/frontend).
 // Everything the app shows and does - views, popups, events, navigation - is
 // decided by the ABAP class on the backend. This control only decides WHICH
 // class runs, against WHICH endpoint, and how much room it gets.
