@@ -1,5 +1,5 @@
 // Builds the four branches of abap2UI5/frontend-cc: the example host app
-// (examples/host-app) with the reuse custom control and the abap2UI5 frontend
+// (examples/host-app) with the embed control and the abap2UI5 frontend
 // inside it, delivered the way abap2UI5/frontend delivers the frontend alone.
 //
 //   standard     BSP Z2UI5_CC, classic UI5 bootstrap         (on premise)
@@ -17,15 +17,14 @@
 //   index.html, Component.js, manifest.json, view/, controller/, css/
 //                  examples/host-app/webapp - the example, unchanged but for
 //                  the patches below
-//   frontend/      abap2UI5 app/webapp at A2UI5_PIN (without its index.html)
-//                  - the z2ui5 component the control wraps
-//   frontend/reuse/
-//                  packages/reuse-custom-control/src - the control
+//   frontend/      abap2UI5 app/webapp at the commit of @abap2ui5/embed-control
+//                  (without its index.html) - the z2ui5 component and, in
+//                  embed/, the control that wraps it
 //   frontend/preload.js
-//                  all modules of the two above in one bundle
+//                  all its modules in one bundle
 //
-// That is the layout the npm package is served in (/resources/z2ui5/ =
-// frontend, /resources/z2ui5/reuse/ = the control), one folder down: z2ui5
+// That is the layout the npm package is served in (/resources/z2ui5/ = the
+// frontend, the control at /resources/z2ui5/embed/), one folder down: z2ui5
 // cannot live under resources/ inside a deployed app, because the ui5_ui5
 // handler answers every <app>/resources/ path from the UI5 library of the
 // system. So the host registers the z2ui5 namespace at ./frontend/ instead.
@@ -50,6 +49,7 @@ import {
   readdirSync,
   rmSync,
   writeFileSync,
+  existsSync,
 } from "node:fs";
 import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -66,7 +66,6 @@ export const BRANCHES = ["cloud", "cloud_v2", "standard", "standard_v2"];
 
 const out = join(root, "out");
 const hostApp = join(root, "examples", "host-app");
-const control = join(root, "packages", "reuse-custom-control", "src");
 const delivery = join(root, "delivery");
 
 // the frontend's backend path, and what the cloud branches point it at -
@@ -121,11 +120,17 @@ function run(args, cwd) {
 // the webapp every branch is made of
 // ---------------------------------------------------------------------------
 
-// The z2ui5 component with the control in it - app/webapp at the pin, its
-// index.html included (preload.js patches it; it is dropped afterwards).
+// The z2ui5 component with the control in it (app/webapp/embed since the
+// control moved into abap2UI5) - app/webapp at the pin, its index.html
+// included (preload.js patches it; it is dropped afterwards).
 function frontendWebapp(a2, dir) {
   cpSync(join(a2, "app", "webapp"), dir, { recursive: true });
-  cpSync(control, join(dir, "reuse"), { recursive: true });
+  if (!existsSync(join(dir, "embed", "Container.js"))) {
+    throw new Error(
+      "build-branches: abap2UI5 app/webapp at the pin has no embed/Container.js - " +
+        "the control ships in the webapp from the release @abap2ui5/embed-control names",
+    );
+  }
 }
 
 // frontend/preload.js: abap2UI5's app2bsp/preload.js run on the frontend
@@ -156,7 +161,7 @@ function hostIndexHtml(html) {
   html = mustReplace(
     html,
     /<!-- No resourceroots entry for z2ui5:[\s\S]*?-->/,
-    "<!-- z2ui5 is the abap2UI5 frontend with the reuse control, delivered\n" +
+    "<!-- z2ui5 is the abap2UI5 frontend with the embed control, delivered\n" +
       "         next to this page in frontend/. The page boots through its\n" +
       "         bundle, frontend/preload.js, which registers every z2ui5\n" +
       "         module and then starts the component below. -->",
@@ -290,16 +295,16 @@ function buildCloud(ctx, branch) {
   writeFileSync(join(app, ".gitignore"), "node_modules/\ndist/\n.env\n");
 
   const pkg = readJson(join(hostApp, "package.json"));
-  if (!pkg.dependencies?.["@abap2ui5/reuse-custom-control"]) {
+  if (!pkg.dependencies?.["@abap2ui5/embed-control"]) {
     throw new Error(
       "build-branches: examples/host-app/package.json no longer depends on " +
-        "@abap2ui5/reuse-custom-control",
+        "@abap2ui5/embed-control",
     );
   }
   delete pkg.dependencies;
   pkg.description =
     "abap2UI5 inside a UI5 app - the example of " +
-    "@abap2ui5/reuse-custom-control, with the control and the abap2UI5 " +
+    "@abap2ui5/embed-control, with the control and the abap2UI5 " +
     "frontend in webapp/frontend";
   writeJson(join(app, "package.json"), pkg);
 
@@ -312,7 +317,7 @@ function buildCloud(ctx, branch) {
     readFileSync(join(hostApp, "ui5.yaml"), "utf8"),
     /\nserver:\n/,
     "\nbuilder:\n" +
-      "  # frontend/ is the abap2UI5 frontend with the reuse control (the z2ui5\n" +
+      "  # frontend/ is the abap2UI5 frontend with the embed control (the z2ui5\n" +
       "  # namespace) - it has its own bundle, frontend/preload.js\n" +
       "  componentPreload:\n" +
       "    excludes:\n" +
@@ -377,7 +382,7 @@ function buildStandard(ctx, branch) {
     mustReplace(
       readFileSync(wapa, "utf8"),
       "<TEXT>abap2UI5 frontend (generated)</TEXT>",
-      "<TEXT>abap2UI5 in a UI5 app, reuse control (generated)</TEXT>",
+      "<TEXT>abap2UI5 in a UI5 app, embed control (generated)</TEXT>",
       "the BSP short text in z2ui5.wapa.xml",
     ),
   );
@@ -387,7 +392,7 @@ function buildStandard(ctx, branch) {
     mustReplace(
       readFileSync(pkg, "utf8"),
       "<CTEXT>abap2UI5 - frontend</CTEXT>",
-      "<CTEXT>abap2UI5 - frontend with reuse custom control</CTEXT>",
+      "<CTEXT>abap2UI5 - frontend with embed control</CTEXT>",
       "the package text in frontend/abap/standard/package.devc.xml",
     ),
   );

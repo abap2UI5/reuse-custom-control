@@ -16,7 +16,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readPin } from "./abap2ui5.mjs";
 
-const SELF = "abap2UI5/reuse-custom-control";
+const SELF = "abap2UI5/embed-example";
 
 // First line of every branch README. build-branches.mjs writes it without
 // the provenance, this script replaces it with the same line including it.

@@ -19,7 +19,6 @@ export default [
       ".abap2ui5/**",
       "**/dist/**",
       // generated from abap2UI5 app/webapp - linted there, not here
-      "packages/reuse-custom-control/frontend/**",
       // the frontend-cc branches scripts/build-branches.mjs builds
       "out/**",
       "playwright-report/**",
@@ -28,7 +27,7 @@ export default [
   },
   // UI5 modules: the control and the example app, run in the browser
   {
-    files: ["packages/*/src/**/*.js", "examples/*/webapp/**/*.js"],
+    files: ["examples/*/webapp/**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "script",

@@ -1,20 +1,17 @@
 {
-  "name": "reuse-custom-control-workspace",
+  "name": "embed-workspace",
   "private": true,
-  "description": "Workspace of @abap2ui5/reuse-custom-control: the npm package (packages/) and an example app that uses it (examples/)",
+  "description": "The example host app for @abap2ui5/embed-control (examples/), its browser tests, and the build of abap2UI5/frontend-cc",
   "license": "MIT",
   "engines": {
     "node": ">=22"
   },
   "workspaces": [
-    "packages/*",
     "examples/*"
   ],
   "scripts": {
-    "sync": "node scripts/sync-frontend.mjs",
-    "start": "npm run sync && npm run start --workspace examples/host-app",
-    "build": "npm run sync && npm run build --workspace examples/host-app",
-    "pack:check": "npm run sync && npm pack --dry-run --workspace packages/reuse-custom-control",
+    "start": "npm run start --workspace examples/host-app",
+    "build": "npm run build --workspace examples/host-app",
     "branches": "node scripts/build-branches.mjs",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,mjs,json}\"",

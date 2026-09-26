@@ -1,4 +1,4 @@
-# AGENTS.md — AI Assistant Guide for the abap2UI5 reuse custom control
+# AGENTS.md — AI Assistant Guide for abap2UI5/embed-example
 
 > This file follows the cross-tool AGENTS.md convention and is the single
 > agent instruction file of this repository. `CLAUDE.md` next to it is a
@@ -6,79 +6,72 @@
 
 ## What this repository is
 
-The source of the npm package **`@abap2ui5/reuse-custom-control`**
-(`packages/reuse-custom-control`): the UI5 custom control
-`z2ui5.reuse.Container`, which runs an abap2UI5 app - an ABAP class
-implementing `z2ui5_if_app` - inside any UI5 app. Next to it an example app
-(`examples/host-app`) that consumes the package the way an app from the
-registry would, and Playwright tests (`test/e2e`) that drive that example
-against a live abap2UI5 backend.
+The example and the delivery of **embedding abap2UI5 apps in a UI5 app**.
+The control that does it, `z2ui5.embed.Container`, is NOT written here: it
+lives in abap2UI5 (`app/webapp/embed/Container.js`) and ships with the
+frontend as the npm package
+[`@abap2ui5/embed-control`](https://www.npmjs.com/package/@abap2ui5/embed-control).
+This repository holds what uses it:
+
+- `examples/host-app` - a plain UI5 app that depends on
+  `@abap2ui5/embed-control` the way any app from the registry would, and
+  places the control three times
+- `test/e2e` - Playwright tests that drive that example against a live
+  abap2UI5 backend, on UI5 1.136 and 1.71
+- `scripts/build-branches.mjs` - the build of
+  [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc), the example
+  delivered ready to install
+
+The control was written here, as the npm package `@abap2ui5/embed` (first
+`@abap2ui5/reuse-custom-control`) in the namespace `z2ui5.reuse`, and moved
+into abap2UI5 - renamed to `z2ui5.embed` - before either was ever published: 7 kB do not earn a package and a version pin of their own, and
+next to the component it wraps the two can never be of different releases.
+Nothing is published from this repository.
 
 **Language:** English for all code, comments, docs, commit messages, PRs.
 
-## Never edit `packages/reuse-custom-control/frontend/`
+## One pin: the `@abap2ui5/embed-control` version
 
-It is the abap2UI5 frontend - the `z2ui5` UI5 component the control wraps -
-copied by `scripts/sync-frontend.mjs` from
-[abap2UI5 `app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp)
-at the commit in `A2UI5_PIN`. It is git-ignored and overwritten by every
-sync. A change the control needs from the frontend (an `embedded` flag, an
-`endpoint` setting, ...) is a pull request to abap2UI5; once merged, bump
-`A2UI5_PIN` here. Do not patch the copy, and do not work around a frontend
-limitation in the control when the fix belongs in abap2UI5 - say so instead.
+`examples/host-app/package.json` depends on `@abap2ui5/embed-control` at an
+**exact** version. That package records its abap2UI5 commit under
+`abap2ui5.commit`, and `scripts/abap2ui5.mjs` reads it from there for the
+frontend-cc build; the e2e job installs first and builds the backend from the
+same commit. So the example, the tests and the delivered branches can never
+pair different frontends. It used to be two pins - `A2UI5_PIN` and a copy of
+the webapp synced from it - kept in step by hand.
+
+A change the example needs from the control or the frontend (an `embedded`
+flag, a new property, ...) is a pull request to abap2UI5; once released, bump
+the dependency here and `npm install` for the lockfile. Do not work around a
+limitation of the control in the example when the fix belongs in abap2UI5 -
+say so instead. The rules for the control itself (UI5 1.71 floor, thin, one
+component per control, no inline styles, no `eval`) are in abap2UI5 with the
+control and its spec.
 
 ## Layout
 
 | Path | |
-|---|---|
-| `A2UI5_PIN` | Full sha of the abap2UI5 commit the package ships |
-| `scripts/sync-frontend.mjs` | Copies `app/webapp` at the pin (or `ABAP2UI5_DIR`) into `frontend/`, builds its `Component-preload.js` |
-| `packages/reuse-custom-control/ui5.yaml` | UI5 CLI project of type `module`: `/resources/z2ui5/reuse/` → `src/`, `/resources/z2ui5/` → `frontend/` |
-| `packages/reuse-custom-control/src/` | The control (`Container.js`) and its stylesheet |
-| `packages/reuse-custom-control/README.md` | The consumer documentation - what npm shows |
+| --- | --- |
 | `examples/host-app/` | The example: a plain UI5 app, `ui5-middleware-simpleproxy` to the backend, `lib/sameOrigin.js` for the backend's CSRF check |
 | `test/e2e/` | Playwright tests of the example |
 | `scripts/build-branches.mjs` | Builds the four branches of [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc) into the git-ignored `out/` (see below) |
-| `scripts/abap2ui5.mjs` | Where both scripts get abap2UI5 from: the pin, or `ABAP2UI5_DIR` |
+| `scripts/abap2ui5.mjs` | Where the scripts get abap2UI5 from: the commit `@abap2ui5/embed-control` records, or `ABAP2UI5_DIR` |
 | `scripts/branch-stamp.mjs` | The provenance (`VERSION`, README banner) of a frontend-cc branch, written at deploy time |
 | `delivery/README.md` | The README of every frontend-cc branch and of its `main` |
-| `.github/workflows/` | `ci.yaml` (checks, frontend-cc trees, e2e), `publish.yaml` (npm, on a GitHub release), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
-
-## Rules for `src/`
-
-- **UI5 1.71 is the floor**, as in abap2UI5. Use no module, class, property or
-  enum newer than 1.71, and no `sap/ui/core/Lib` / `sap/ui/core/Element`
-  static APIs. What the control uses today and since when:
-  `sap/ui/dom/includeStylesheet` (1.58), `ComponentContainer#lifecycle`
-  (1.56), renderer `apiVersion: 2` (1.67).
-  The e2e tests run the example on 1.71 too (`examples/host-app/ui5-1.71.yaml`,
-  the `ui5-1.71` Playwright project) - a change to `src/` is done when both
-  projects pass.
-- **Keep the control thin.** It picks the class, the endpoint and the size;
-  everything the app does comes from the backend through the component. It
-  configures the component only through what the frontend reads itself -
-  `componentData.startupParameters` and `componentData.endpoint` (abap2UI5
-  `Component.init`) - never by patching the manifest or reaching into the
-  component's state.
-- **One component per control, one backend session per component.** A change
-  of `app`, `endpoint` or `params` replaces the component; nothing is patched
-  into a running one.
-- **No inline styles for descendants and no `eval`**: a host with a strict
-  Content-Security-Policy must need nothing extra. Styles go into
-  `Container.css`, scoped under `.z2ui5ReuseContainer`.
-- A UI5 module id is case-sensitive and a wrong one only fails in the browser
-  (`includeStylesheet`, not `includeStyleSheet`) - run the e2e tests.
+| `.github/workflows/` | `ci.yaml` (checks, frontend-cc trees, e2e), `frontend_cc_deploy.yaml` (the trees into frontend-cc) |
 
 ## The frontend-cc branches
 
 `npm run branches` builds `standard`, `standard_v2` (BSP `Z2UI5_CC` with its
 own ICF node and handler), `cloud` and `cloud_v2` (the example's UI5 project
-in `app/`) - the example with the control and the abap2UI5 frontend vendored
-into `frontend/`, delivered like abap2UI5/frontend delivers the frontend.
+in `app/`) - the example with the abap2UI5 frontend, control included,
+vendored into `frontend/`, delivered like abap2UI5/frontend delivers the
+frontend.
 
 - **frontend-cc is a delivery repository.** Nothing there is edited by hand;
-  a change to a branch is a change to the example, the control,
-  `scripts/build-branches.mjs` or `delivery/README.md` here.
+  a change to a branch is a change to the example,
+  `scripts/build-branches.mjs` or `delivery/README.md` here - or to the
+  control in abap2UI5 and a bump of the pin.
 - **The BSP tooling is abap2UI5's, at the pin** (`tools/app2bsp`,
   `tools/bsp_rename`, `tools/check-pages.mjs`, `tools/app2app_v2/patch-v2.mjs`,
   `frontend/abap/standard`). Do not copy or re-implement it here; a fix to it
@@ -96,15 +89,10 @@ into `frontend/`, delivered like abap2UI5/frontend delivers the frontend.
 npm ci
 npm run lint && npm run format:check
 npm run build          # ui5 build --all of the example
-npm run pack:check     # package contents
 npm run branches       # the frontend-cc trees, BSP page invariants included
 npx playwright test    # needs the abap2UI5 backend on :3000 - see README
 ```
 
-All text files are LF-only, formatted with Prettier (`.prettierrc`).
-
-## Publishing
-
-A GitHub release `v<version>` publishes the version in
-`packages/reuse-custom-control/package.json` (`publish.yaml`, `NPM_TOKEN`).
-Never publish a build synced from `ABAP2UI5_DIR`.
+The e2e tests run the example on UI5 1.71 too (`examples/host-app/ui5-1.71.yaml`,
+the `ui5-1.71` Playwright project); a change here is done when both projects
+pass. All text files are LF-only, formatted with Prettier (`.prettierrc`).
