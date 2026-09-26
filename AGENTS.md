@@ -1,4 +1,4 @@
-# AGENTS.md — AI Assistant Guide for abap2UI5/embed
+# AGENTS.md — AI Assistant Guide for abap2UI5/embed-example
 
 > This file follows the cross-tool AGENTS.md convention and is the single
 > agent instruction file of this repository. `CLAUDE.md` next to it is a
@@ -7,8 +7,8 @@
 ## What this repository is
 
 The example and the delivery of **embedding abap2UI5 apps in a UI5 app**.
-The control that does it, `z2ui5.reuse.Container`, is NOT written here: it
-lives in abap2UI5 (`app/webapp/reuse/Container.js`) and ships with the
+The control that does it, `z2ui5.embed.Container`, is NOT written here: it
+lives in abap2UI5 (`app/webapp/embed/Container.js`) and ships with the
 frontend as the npm package
 [`@abap2ui5/embed-control`](https://www.npmjs.com/package/@abap2ui5/embed-control).
 This repository holds what uses it:
@@ -23,8 +23,8 @@ This repository holds what uses it:
   delivered ready to install
 
 The control was written here, as the npm package `@abap2ui5/embed` (first
-`@abap2ui5/reuse-custom-control`), and moved into abap2UI5 before it was ever
-published: 7 kB do not earn a package and a version pin of their own, and
+`@abap2ui5/reuse-custom-control`) in the namespace `z2ui5.reuse`, and moved
+into abap2UI5 - renamed to `z2ui5.embed` - before either was ever published: 7 kB do not earn a package and a version pin of their own, and
 next to the component it wraps the two can never be of different releases.
 Nothing is published from this repository.
 

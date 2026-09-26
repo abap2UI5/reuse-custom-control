@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-// The example host app (examples/host-app) with three z2ui5.reuse.Container
+// The example host app (examples/host-app) with three z2ui5.embed.Container
 // controls - one bound to the host's model (#single), two side by side
 // (#left, #right) - all running Z2UI5_CL_UI5_APP_HI_WORLD on the backend.
 // Every test runs once per project in playwright.config.mjs (UI5 release).
 
 const container = (page, id) =>
-  page.locator(`.z2ui5ReuseContainer[id$='--${id}']`);
+  page.locator(`.z2ui5EmbedContainer[id$='--${id}']`);
 const postButtons = (page) => page.getByRole("button", { name: "Post" });
 
 test.beforeEach(async ({ page }, testInfo) => {
@@ -64,7 +64,7 @@ test("endpoint and params reach the backend", async ({ page }) => {
     () =>
       new Promise((resolve, reject) => {
         sap.ui.require(
-          ["z2ui5/reuse/Container"],
+          ["z2ui5/embed/Container"],
           (Container) => {
             const host = document.createElement("div");
             document.body.prepend(host);

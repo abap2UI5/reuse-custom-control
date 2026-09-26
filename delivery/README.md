@@ -1,13 +1,13 @@
 # abap2UI5 frontend-cc
 
 abap2UI5 inside a UI5 app: the example app of
-[abap2UI5/embed](https://github.com/abap2UI5/embed),
-ready to install. A plain UI5 app places `z2ui5.reuse.Container` controls, and
+[abap2UI5/embed-example](https://github.com/abap2UI5/embed-example),
+ready to install. A plain UI5 app places `z2ui5.embed.Container` controls, and
 each of them runs an abap2UI5 app - an ABAP class implementing `z2ui5_if_app` -
 in its own backend session:
 
 ```xml
-<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:z2ui5="z2ui5.reuse">
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:z2ui5="z2ui5.embed">
   <z2ui5:Container app="Z2UI5_CL_UI5_APP_HI_WORLD" height="400px"/>
 </mvc:View>
 ```
@@ -20,14 +20,14 @@ abap2UI5 frontend on its own, and it is built the same way.
 > ### This repository is generated — it does not take manual pull requests
 >
 > Every branch is built in
-> [abap2UI5/embed](https://github.com/abap2UI5/embed)
+> [abap2UI5/embed-example](https://github.com/abap2UI5/embed-example)
 > by `scripts/build-branches.mjs` and pushed in by its `frontend_cc_deploy`
 > workflow — first as `result/<branch>` folders into one commit on `main`, then
 > fanned out by the `deliver` workflow here, so each branch is exactly one
 > commit ahead of `main`.
 >
 > ```
-> abap2UI5/embed              abap2UI5/frontend-cc
+> abap2UI5/embed-example      abap2UI5/frontend-cc
 >                      frontend_cc_deploy                       deliver
 >   examples/host-app  ─────────────────▶  main           ──────────▶  standard
 >                                           result/<branch>             standard_v2
@@ -79,7 +79,7 @@ name of your choice.
 index.html, Component.js, manifest.json, view/, controller/, css/
                    the example app (demo.host)
 frontend/          the abap2UI5 frontend - the z2ui5 component
-frontend/reuse/    the control, z2ui5.reuse.Container
+frontend/embed/    the control, z2ui5.embed.Container
 frontend/preload.js
                    every module of the two above in one bundle; index.html
                    boots it, so the frontend starts after one request
@@ -100,15 +100,15 @@ its `endpoint` property.
 
 | Content | Owned by |
 |---|---|
-| the app, the build | [abap2UI5/embed](https://github.com/abap2UI5/embed) — `examples/host-app`, `scripts/build-branches.mjs` |
-| the control, the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp` (the control in `app/webapp/reuse/`), `tools/`; reaches this repository with the next bump of `@abap2ui5/embed-control` in embed |
+| the app, the build | [abap2UI5/embed-example](https://github.com/abap2UI5/embed-example) — `examples/host-app`, `scripts/build-branches.mjs` |
+| the control, the abap2UI5 frontend, the BSP tooling | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) — `app/webapp` (the control in `app/webapp/embed/`), `tools/`; reaches this repository with the next bump of `@abap2ui5/embed-control` in embed-example |
 | `result/` on `main`, every branch | machine-written — a hand edit is overwritten by the next delivery |
 | this repository's docs | here, as a maintenance pull request |
 
 #### Issues
 
 For bug reports or feature requests, open an issue in
-[abap2UI5/embed](https://github.com/abap2UI5/embed/issues)
+[abap2UI5/embed-example](https://github.com/abap2UI5/embed-example/issues)
 (the app, the control) or
 [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5/issues) (the
 frontend, the backend).

@@ -9,7 +9,7 @@ What to look at:
 | File | |
 |---|---|
 | `package.json` | the package is an ordinary dependency - nothing else wires it in |
-| `webapp/view/Main.view.xml` | `xmlns:z2ui5="z2ui5.reuse"` and three `z2ui5:Container` controls |
+| `webapp/view/Main.view.xml` | `xmlns:z2ui5="z2ui5.embed"` and three `z2ui5:Container` controls |
 | `webapp/controller/Main.controller.js` | starting another app = setting a model property |
 | `webapp/manifest.json` | the `z2ui5` resourceRoot the Fiori launchpad needs |
 | `ui5.yaml` | the proxy to the backend, and every UI5 library the ABAP apps use |

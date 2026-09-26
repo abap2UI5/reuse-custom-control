@@ -1,11 +1,11 @@
-# abap2UI5 embed
+# abap2UI5 embed example
 
 The example and the delivery of **embedding
 [abap2UI5](https://github.com/abap2UI5/abap2UI5) apps in a UI5 app** with the
-control `z2ui5.reuse.Container`:
+control `z2ui5.embed.Container`:
 
 ```xml
-<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:z2ui5="z2ui5.reuse">
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:z2ui5="z2ui5.embed">
   <z2ui5:Container app="Z2UI5_CL_UI5_APP_HI_WORLD" height="400px"/>
 </mvc:View>
 ```
@@ -13,8 +13,8 @@ control `z2ui5.reuse.Container`:
 The control ships with the abap2UI5 frontend, in the npm package
 [`@abap2ui5/embed-control`](https://www.npmjs.com/package/@abap2ui5/embed-control)
 - how to use it is in that package's README. It lives in abap2UI5
-(`app/webapp/reuse/`); it was written here and moved there before it was
-ever published. This repository holds the **[example app](examples/host-app)**
+(`app/webapp/embed/`); it was written here, in the namespace `z2ui5.reuse`,
+and moved there as `z2ui5.embed` before it was ever published. This repository holds the **[example app](examples/host-app)**
 that uses it, its browser tests, and the build of the ready-to-install
 delivery, [abap2UI5/frontend-cc](https://github.com/abap2UI5/frontend-cc).
 
