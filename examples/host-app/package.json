@@ -7,7 +7,7 @@
   "scripts": {
     "start": "ui5 serve --open index.html",
     "serve": "ui5 serve",
-    "build": "ui5 build --all --clean-dest"
+    "build": "ui5 build --clean-dest"
   },
   "dependencies": {
     "@abap2ui5/reuse-custom-control": "^0.1.0"

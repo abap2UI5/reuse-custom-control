@@ -1,20 +1,27 @@
 // z2ui5.reuse.Container - runs an abap2UI5 app inside any UI5 app.
 //
-//   <mvc:View xmlns:z2ui5="z2ui5.reuse">
+//   <mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:z2ui5="z2ui5.reuse">
 //     <z2ui5:Container app="Z2UI5_CL_UI5_APP_HI_WORLD" height="400px"/>
 //   </mvc:View>
 //
-// A thin wrapper around a sap.ui.core.ComponentContainer that holds the
-// abap2UI5 frontend: the z2ui5 UIComponent this package ships under
-// /resources/z2ui5/ (app/webapp of abap2UI5, see scripts/sync-frontend.mjs).
-// Everything the app shows and does - views, popups, events, navigation - is
-// decided by the ABAP class on the backend. This control only decides WHICH
-// class runs, against WHICH endpoint, and how much room it gets.
+// The abap2UI5 frontend - the z2ui5 UIComponent the control wraps - is not
+// shipped with the control: it comes from the abap2UI5 service the app talks
+// to anyway. Every abap2UI5 installation carries its frontend (embedded in
+// the ABAP classes generated from app/webapp), so the frontend always has
+// the version of the backend it runs against, and a host app carries nothing
+// but this file and its stylesheet.
 //
-// Every instance is its own abap2UI5 session, a stateful roundtrip chain on
-// the backend. So changing app, endpoint or params starts a NEW component
-// rather than patching the running one, and destroying the control destroys
-// the component, which ends the backend session (z2ui5.Component#exit).
+//   GET  <endpoint>?z2ui5-bundle   the frontend as a script, once per page
+//   POST <endpoint>                the roundtrips, one session per control
+//
+// Without the parameter a GET of the endpoint is abap2UI5's own page, as
+// always (z2ui5_cl_ui5_http_handler=>_http_get_bundle in abap2UI5).
+//
+// Everything the app shows and does is decided by the ABAP class on the
+// backend. This control only decides WHICH class runs, against WHICH
+// endpoint, and how much room it gets. Every instance is its own abap2UI5
+// session; changing app, endpoint or params starts a NEW component, and
+// destroying the control destroys the component, which ends the session.
 sap.ui.define(
   [
     "sap/ui/core/Control",
@@ -27,6 +34,19 @@ sap.ui.define(
     // the component name - "sap.app/id" of abap2UI5's app/webapp/manifest.json
     const COMPONENT = "z2ui5";
 
+    // abap2UI5's own service node - the page, the roundtrips and the bundle
+    const DEFAULT_ENDPOINT = "/sap/bc/z2ui5";
+
+    // the URL parameter that asks the node for the bundle instead of the page
+    const BUNDLE_PARAM = "z2ui5-bundle";
+
+    // A path on this server - and nothing else. What comes back from it is
+    // CODE that runs in this page, so an endpoint naming another host (a
+    // scheme, or //host) would hand the page to whoever controls the value -
+    // a host that binds the property to a URL parameter, say. The roundtrips
+    // have to stay on this origin anyway (abap2UI5's CSRF check).
+    const SAME_ORIGIN_PATH = /^\/(?![/\\])[^?#\\]*$/;
+
     // Once per page. A stylesheet rather than inline styles, so a host with
     // a strict Content-Security-Policy (no 'unsafe-inline') needs nothing
     // extra for it.
@@ -34,6 +54,48 @@ sap.ui.define(
       sap.ui.require.toUrl("z2ui5/reuse/Container.css"),
       "z2ui5-reuse-container-css",
     );
+
+    // The frontend is loaded once per page - UI5 has one z2ui5 namespace -
+    // from the endpoint of the first control that starts. Every later
+    // control uses it and sends its roundtrips to its own endpoint.
+    //
+    // A <script> element, not the module loader: the bundle is no module of
+    // its own path but the answer of the endpoint to a parameter. It
+    // registers the frontend's modules (sap.ui.require.preload, functions -
+    // nothing is evaluated from a string) and defines z2ui5/embed, which
+    // carries what only the installation knows. A logon page, or the page of
+    // an abap2UI5 without the bundle, defines no such module: the script
+    // either does not run (HTML under nosniff) or runs into nothing, and the
+    // require below fails.
+    let frontend = null;
+
+    function loadFrontend(endpoint) {
+      if (!frontend) {
+        frontend = new Promise((resolve, reject) => {
+          const url = `${endpoint}?${BUNDLE_PARAM}`;
+          const fail = () =>
+            reject(
+              new Error(
+                `no abap2UI5 frontend at ${url} - is the service active, ` +
+                  "the session valid and abap2UI5 recent enough?",
+              ),
+            );
+          const script = document.createElement("script");
+          script.src = url;
+          script.onerror = fail;
+          script.onload = () => {
+            sap.ui.require(
+              ["z2ui5/embed"],
+              (embed) =>
+                embed && embed.componentData ? resolve(embed) : fail(),
+              fail,
+            );
+          };
+          document.head.appendChild(script);
+        });
+      }
+      return frontend;
+    }
 
     return Control.extend("z2ui5.reuse.Container", {
       metadata: {
@@ -43,12 +105,10 @@ sap.ui.define(
           // has. Nothing starts while it is empty.
           app: { type: "string", defaultValue: "" },
 
-          // URL of the abap2UI5 HTTP service, handed to the component as
-          // componentData.endpoint. Empty means the component's own default,
-          // /sap/bc/z2ui5 from its manifest. The backend rejects a POST whose
-          // Origin is not its own host, so this has to be reachable from the
-          // page's origin - a relative path behind the app's proxy, the
-          // approuter or the launchpad, not another server's URL.
+          // Path of the abap2UI5 HTTP service on this server; empty means
+          // DEFAULT_ENDPOINT, /sap/bc/z2ui5. The frontend is loaded from it
+          // (the first control on the page decides) and the roundtrips go
+          // to it.
           endpoint: { type: "string", defaultValue: "" },
 
           // Startup parameters for the app, { name: "value", ... }. The app
@@ -74,7 +134,8 @@ sap.ui.define(
           componentCreated: {
             parameters: { component: { type: "sap.ui.core.UIComponent" } },
           },
-          // it could not be created - e.g. the frontend files are not served
+          // it could not be created - the endpoint is not a path on this
+          // server, the frontend could not be loaded, or the component failed
           componentFailed: {
             parameters: { reason: { type: "object" } },
           },
@@ -109,26 +170,58 @@ sap.ui.define(
 
       // The three properties the backend session is started with. A change
       // throws the running component away (which ends its session) and lets
-      // the next rendering start a fresh one. A destroyed container fires
-      // nothing any more, so an event of the replaced app cannot reach the
-      // host after the new one started.
+      // the next rendering start a fresh one; a start still waiting for the
+      // frontend is dropped. A destroyed container fires nothing any more,
+      // so an event of the replaced app cannot reach the host.
       _setStartProperty(name, value) {
         const before = this.getProperty(name);
         this.setProperty(name, value);
         if (this.getProperty(name) !== before) {
           this.destroyAggregation("_container");
+          this._start = null;
         }
         return this;
       },
 
+      // The start is asynchronous now: the frontend may still have to come
+      // from the backend. The container is set once it is there, which
+      // renders the control again.
       onBeforeRendering() {
-        if (this.getApp() && !this.getAggregation("_container")) {
-          // suppress the invalidation: this rendering is about to render it
-          this.setAggregation("_container", this._createContainer(), true);
+        if (!this.getApp() || this.getAggregation("_container")) return;
+        if (this._start) return;
+        const start = (this._start = {});
+
+        const endpoint = this._endpoint();
+        if (!SAME_ORIGIN_PATH.test(endpoint)) {
+          this.fireComponentFailed({
+            reason: new Error(
+              `endpoint '${endpoint}' is not a path on this server - ` +
+                "the abap2UI5 frontend is only loaded from there",
+            ),
+          });
+          return;
         }
+        loadFrontend(endpoint).then(
+          (embed) => {
+            if (this._exited || this._start !== start) return;
+            this.setAggregation("_container", this._createContainer(embed));
+          },
+          (reason) => {
+            if (this._exited || this._start !== start) return;
+            this.fireComponentFailed({ reason });
+          },
+        );
       },
 
-      _createContainer() {
+      exit() {
+        this._exited = true;
+      },
+
+      _endpoint() {
+        return (this.getEndpoint() || DEFAULT_ENDPOINT).replace(/\/+$/, "");
+      },
+
+      _createContainer(embed) {
         return new ComponentContainer({
           name: COMPONENT,
           manifest: true,
@@ -143,7 +236,7 @@ sap.ui.define(
           handleValidation: true,
           width: "100%",
           height: "100%",
-          settings: { componentData: this._componentData() },
+          settings: { componentData: this._componentData(embed) },
           componentCreated: (event) => {
             this.fireComponentCreated({
               component: event.getParameter("component"),
@@ -163,16 +256,19 @@ sap.ui.define(
       //                      launchpad's shape, one array of values per name
       //   endpoint           the backend URL, read by the frontend and not
       //                      sent on (Component.init in abap2UI5 app/webapp)
-      _componentData() {
+      //   z2ui5/embed        what the bundle hands over - the installation's
+      //                      own settings, the paths of the sibling BSPs
+      //                      z2ui5_cci/z2ui5_ccc
+      _componentData(embed) {
         const startupParameters = {};
         for (const [name, value] of Object.entries(this.getParams() || {})) {
           startupParameters[name] = [String(value)];
         }
         startupParameters.app_start = [this.getApp()];
-        const endpoint = this.getEndpoint();
-        return endpoint
-          ? { startupParameters, endpoint }
-          : { startupParameters };
+        return Object.assign({}, embed.componentData, {
+          startupParameters,
+          endpoint: this._endpoint(),
+        });
       },
     });
   },

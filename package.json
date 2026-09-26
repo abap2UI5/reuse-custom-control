@@ -11,11 +11,9 @@
     "examples/*"
   ],
   "scripts": {
-    "sync": "node scripts/sync-frontend.mjs",
-    "start": "npm run sync && npm run start --workspace examples/host-app",
-    "build": "npm run sync && npm run build --workspace examples/host-app",
-    "pack:check": "npm run sync && npm pack --dry-run --workspace packages/reuse-custom-control",
-    "branches": "node scripts/build-branches.mjs",
+    "start": "npm run start --workspace examples/host-app",
+    "build": "npm run build --workspace examples/host-app",
+    "pack:check": "npm pack --dry-run --workspace packages/reuse-custom-control",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,mjs,json}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,json}\""
@@ -26,7 +24,6 @@
     "@ui5/cli": "^4.0.69",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
-    "prettier": "^3.9.9",
-    "terser": "^5.51.2"
+    "prettier": "^3.9.9"
   }
 }
