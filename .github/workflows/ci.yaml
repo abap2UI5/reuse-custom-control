@@ -1,12 +1,13 @@
 name: ci
 
-# check - lint, format, the consumer build of the example and the package
-#         contents, all against the frontend synced from A2UI5_PIN
-# branches - the four abap2UI5/frontend-cc trees the example is delivered
-#         in (scripts/build-branches.mjs), with the ABAP of the BSP linted
-# e2e   - the example app in a browser against a live abap2UI5 backend: the
-#         pinned abap2UI5, transpiled to JavaScript and served by its own
-#         express server (npm run express) - no SAP system involved
+# check - lint, format, the consumer build of the example (the control has to
+#         land in dist/thirdparty/) and the package contents
+# e2e   - the example app in a browser against a live abap2UI5 backend:
+#         abap2UI5 main, transpiled to JavaScript and served by its own
+#         express server (npm run express) - no SAP system involved. The
+#         control loads the frontend from that backend (?z2ui5-bundle), so
+#         what is tested is the pair a user gets: this control and the
+#         current abap2UI5
 
 on:
   pull_request:
@@ -35,39 +36,27 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run format:check
         if: ${{ !cancelled() }}
-      - run: npm run sync
       - run: npm run build
         if: ${{ !cancelled() }}
+      # the consumer build: the control is copied into the app (includeDependency
+      # in the example's ui5.yaml), next to it and not under resources/
+      - name: The control is part of the built app
+        if: ${{ !cancelled() }}
+        run: |
+          test -f examples/host-app/dist/thirdparty/z2ui5/reuse/Container.js
+          test -f examples/host-app/dist/thirdparty/z2ui5/reuse/Container.css
+          test ! -e examples/host-app/dist/resources
       - run: npm run pack:check
         if: ${{ !cancelled() }}
-
-  # the four abap2UI5/frontend-cc trees (scripts/build-branches.mjs, BSP page
-  # invariants included) - the same build frontend_cc_deploy ships
-  branches:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run branches
-      - name: Lint the ABAP of the standard tree
-        working-directory: out/standard
-        run: npx --yes @abaplint/cli@2.120.59
 
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - id: pin
-        run: echo "sha=$(tr -d '[:space:]' < A2UI5_PIN)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: abap2UI5/abap2UI5
-          ref: ${{ steps.pin.outputs.sha }}
           path: .abap2ui5
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -96,7 +85,6 @@ jobs:
 
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run sync
       - run: npx playwright test
         env:
           CI: "true"

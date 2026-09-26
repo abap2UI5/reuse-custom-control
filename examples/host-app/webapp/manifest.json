@@ -27,7 +27,7 @@
       }
     },
     "resourceRoots": {
-      "z2ui5": "./resources/z2ui5/"
+      "z2ui5.reuse": "./thirdparty/z2ui5/reuse/"
     },
     "contentDensities": {
       "compact": true,

@@ -90,3 +90,81 @@ test("endpoint and params reach the backend", async ({ page }) => {
   });
   await expect(postButtons(page)).toHaveCount(4);
 });
+
+// The frontend is not part of the app: the control loads it once from the
+// backend it talks to (GET <endpoint>?z2ui5-bundle) - no z2ui5 module is
+// requested on its own, the control comes from the app's thirdparty/.
+test("the frontend comes from the backend, in one request", async ({
+  page,
+}, testInfo) => {
+  const requests = [];
+  page.on("request", (r) => {
+    const url = new URL(r.url());
+    if (r.method() === "GET" && /z2ui5/i.test(url.pathname + url.search)) {
+      requests.push(url.pathname + url.search);
+    }
+  });
+  await page.goto(`/index.html${testInfo.project.metadata.query ?? ""}`);
+  await expect(postButtons(page)).toHaveCount(3, { timeout: 45_000 });
+
+  expect(requests.sort()).toEqual([
+    "/sap/bc/z2ui5?z2ui5-bundle",
+    "/thirdparty/z2ui5/reuse/Container.css",
+    "/thirdparty/z2ui5/reuse/Container.js",
+  ]);
+});
+
+// What comes back from the endpoint is code that runs in the page - so only
+// a path on this server is accepted, and nothing is requested otherwise.
+test("an endpoint on another origin loads no code", async ({ page }) => {
+  const foreign = [];
+  page.on("request", (r) => {
+    if (!r.url().startsWith("http://localhost")) foreign.push(r.url());
+  });
+  for (const endpoint of [
+    "https://evil.example/sap/bc/z2ui5",
+    "//evil.example/sap/bc/z2ui5",
+    "/\\evil.example/sap/bc/z2ui5",
+  ]) {
+    const reason = await page.evaluate(
+      (endpoint) =>
+        new Promise((resolve) => {
+          sap.ui.require(["z2ui5/reuse/Container"], (Container) => {
+            const host = document.createElement("div");
+            document.body.appendChild(host);
+            new Container({
+              app: "Z2UI5_CL_UI5_APP_HI_WORLD",
+              endpoint,
+              componentCreated: () => resolve("created"),
+              componentFailed: (e) => resolve(e.getParameter("reason").message),
+            }).placeAt(host);
+          });
+        }),
+      endpoint,
+    );
+    expect(reason).toContain("is not a path on this server");
+  }
+  expect(foreign).toEqual([]);
+});
+
+// An expired session answers with a logon page, an abap2UI5 without the
+// bundle with its HTML page - neither defines z2ui5/embed, and the control
+// says so instead of starting nothing.
+test("a logon page instead of the bundle ends in componentFailed", async ({
+  page,
+}, testInfo) => {
+  await page.route(
+    (url) => url.searchParams.has("z2ui5-bundle"),
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!DOCTYPE html><html><body><form>Logon</form></body></html>",
+      }),
+  );
+  await page.goto(`/index.html${testInfo.project.metadata.query ?? ""}`);
+  await expect(page.getByText(/abap2UI5 could not start/)).toBeVisible({
+    timeout: 45_000,
+  });
+  await expect(postButtons(page)).toHaveCount(0);
+});

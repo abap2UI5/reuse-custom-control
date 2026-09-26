@@ -13,18 +13,43 @@ controls:
 </mvc:View>
 ```
 
+The package is the control and nothing else. The abap2UI5 frontend it wraps
+comes from the abap2UI5 installation the app talks to - so it always has the
+version of that backend, and your app never carries a copy of it.
+
 ## Install
 
 ```bash
 npm install @abap2ui5/reuse-custom-control
 ```
 
-That is all the UI5 CLI needs: the package is a UI5 project of type `module`
-(the approach of [distribute and reuse UI5 custom controls via npm](https://community.sap.com/t5/technology-blog-posts-by-members/distribute-and-reuse-ui5-custom-controls-via-npm/ba-p/13472814)),
-so `ui5 serve` serves it under `resources/z2ui5/` and `ui5 build --all`
-copies it into `dist/resources/`. No `resourceroots` entry in a standalone
-`index.html`, no `ui5.dependencies` in `package.json` (UI5 CLI 3 and later
-pick up every dependency that has a `ui5.yaml`).
+Then two entries in your app. `ui5.yaml` - so `ui5 build` copies the control
+into your app (`ui5 serve` serves it anyway):
+
+```yaml
+builder:
+  settings:
+    includeDependency:
+      - "@abap2ui5/reuse-custom-control"
+```
+
+`manifest.json` - where the control's namespace lives:
+
+```json
+"sap.ui5": {
+  "resourceRoots": { "z2ui5.reuse": "./thirdparty/z2ui5/reuse/" }
+}
+```
+
+The build puts it into `dist/thirdparty/z2ui5/reuse/` and your deployment
+takes it along like every other file of the app. Not under `resources/`: an
+app deployed to an ABAP system answers every `<app>/resources/` path from the
+UI5 library of the system. The relative resource root holds in a standalone
+page and in the SAP Fiori launchpad alike.
+
+Nothing else is deployed anywhere: the control is a plain module (no
+component, no library), so no app index entry of an ABAP system is involved,
+and any number of apps can carry their own copy.
 
 ## Use
 
@@ -43,7 +68,7 @@ sap.ui.require(["z2ui5/reuse/Container"], (Container) => {
 | Property | Type | Default | |
 |---|---|---|---|
 | `app` | string | | The ABAP class to run. Nothing starts while it is empty |
-| `endpoint` | string | `/sap/bc/z2ui5` | URL of the abap2UI5 HTTP service - see [Backend](#backend) |
+| `endpoint` | string | `/sap/bc/z2ui5` | Path of the abap2UI5 HTTP service on this server - the frontend is loaded from it, the roundtrips go to it. See [Backend](#backend) |
 | `params` | object | | `{ name: "value" }`, read by the app with `client->get( )-t_comp_params` |
 | `width` | CSSSize | `100%` | |
 | `height` | CSSSize | `100%` | The app fills its container - give it a height, or a parent that has one |
@@ -51,54 +76,48 @@ sap.ui.require(["z2ui5/reuse/Container"], (Container) => {
 | Event | Parameters | |
 |---|---|---|
 | `componentCreated` | `component` | The app's component exists (the first roundtrip is under way) |
-| `componentFailed` | `reason` | It could not be created |
+| `componentFailed` | `reason` | It could not be created - the endpoint is not a path on this server, the frontend could not be loaded, or the component failed |
 
 Every control is its **own abap2UI5 session** - two controls with the same
 class do not share state. Changing `app`, `endpoint` or `params` ends the
 running session and starts a new one; destroying the control ends it too.
 All three are ordinary properties, so they can be bound to your model.
 
-### Without the control
-
-The control is a convenience. Underneath it is a UI5 reuse component, and
-the package serves that too, so a `ComponentContainer` of your own works the
-same way:
-
-```js
-new ComponentContainer({
-  name: "z2ui5",
-  async: true,
-  manifest: true,
-  settings: {
-    componentData: {
-      endpoint: "/sap/bc/z2ui5", // optional, this is the default
-      startupParameters: { app_start: ["ZCL_MY_ABAP2UI5_APP"] },
-    },
-  },
-});
-```
-
 ## Backend
 
-The control is the frontend only. The app runs on an ABAP system with
+The app runs on an ABAP system with
 [abap2UI5 installed](https://abap2ui5.github.io/docs/configuration/installation.html)
-and its HTTP service (by default `/sap/bc/z2ui5`) active.
+and its HTTP service (by default `/sap/bc/z2ui5`) active. The control needs
+an abap2UI5 whose service answers **`?z2ui5-bundle`**:
+
+```
+GET  /sap/bc/z2ui5?z2ui5-bundle   the frontend as one script - loaded once per page
+POST /sap/bc/z2ui5                the roundtrips, one session per control
+GET  /sap/bc/z2ui5                abap2UI5's own page, unchanged
+```
+
+An abap2UI5 without it answers with its page; the control then fires
+`componentFailed` ("no abap2UI5 frontend at ...") instead of starting.
 
 **The page and the service have to share an origin.** abap2UI5 rejects a
-POST whose `Origin` names another host than its own (its CSRF defense), so
-the browser must reach the service through your app's origin:
+POST whose `Origin` names another host than its own (its CSRF defense), and
+the control loads the frontend only from a path on this server - an
+`endpoint` with a scheme or a host is refused, because what comes back is
+code that runs in your page. So the browser reaches the service through your
+app's origin:
 
 - **deployed** - the app is served from the same system (BSP, launchpad), or
   an approuter / destination routes `/sap/bc/z2ui5` to it
 - **`ui5 serve`** - a proxy middleware forwards `/sap` to the system. The
   proxy rewrites `Host` but passes the browser's `Origin` on, so it also has
   to drop `Origin` and `Referer`; the
-  [example app](https://github.com/abap2UI5/test-cc/tree/main/examples/host-app)
+  [example app](https://github.com/abap2UI5/reuse-custom-control/tree/main/examples/host-app)
   shows both pieces
 
-The frontend in this package and the abap2UI5 on the system talk over a
-versioned wire protocol. When the two do not fit, the embedded app says so
-instead of rendering nothing - update the one that is behind.
+**Content-Security-Policy:** the frontend is a `<script src>` of your own
+origin, and every module in it is a function - nothing is evaluated from a
+string. A host with `script-src 'self'` and no `'unsafe-eval'` needs nothing
+extra (UI5 1.71 itself still needs `'unsafe-eval'`).
 
 ## UI5 libraries
 
@@ -107,41 +126,30 @@ CLI serving the framework (`framework:` in `ui5.yaml`), list every library
 your ABAP apps use there, not only the ones your own views use - the hello
 world app, for instance, needs `sap.ui.layout`.
 
-## SAP Fiori launchpad
-
-Inside the launchpad the app's own `resources/` folder is not a resource
-root, so declare the namespace in your app's `manifest.json`:
-
-```json
-"sap.ui5": {
-  "resourceRoots": { "z2ui5": "./resources/z2ui5/" }
-}
-```
-
 ## Supported UI5 versions
 
 The same floor as abap2UI5: OpenUI5 / SAPUI5 **1.71** and later. The example
-app is tested on 1.71 and 1.136. UI5 2.x is what abap2UI5 itself supports, but
-has not been tested with this control yet.
+app is tested on 1.71 and 1.136.
 
 ## Known limitations
 
-abap2UI5 was built to own the whole page. Until its embedded mode exists
-([backlog item](https://github.com/abap2UI5/abap2UI5/blob/main/backlog/items/embed-as-reuse-component.md)),
-an embedded app still
-
-- shows the global busy indicator during a roundtrip, over the whole page
-- may set the document title and favicon, when the ABAP app asks for it
-- takes part in hash routing, when the ABAP app opts into it
-- renders its root as `sap.m.App` and sends its messages to the page-wide
-  message model
+- **One frontend per page**: the first control that starts decides which
+  endpoint the frontend comes from; every control still sends its roundtrips
+  to its own endpoint.
+- abap2UI5 was built to own the whole page. Until its embedded mode exists
+  ([backlog item](https://github.com/abap2UI5/abap2UI5/blob/main/backlog/items/embed-as-reuse-component.md)),
+  an embedded app still shows the global busy indicator during a roundtrip,
+  may set the document title and favicon when the ABAP app asks for it, takes
+  part in hash routing when the ABAP app opts into it, and renders its root
+  as `sap.m.App`.
 
 ## What is inside
 
 | Path | |
 |---|---|
-| `src/` | The control, `z2ui5/reuse/Container.js` and its stylesheet |
-| `frontend/` | The abap2UI5 frontend (the `z2ui5` UI5 component), copied unchanged from [abap2UI5 `app/webapp`](https://github.com/abap2UI5/abap2UI5/tree/main/app/webapp) at the commit in `frontend/.a2ui5-pin`, plus its `Component-preload.js` |
+| `src/Container.js` | The control, `z2ui5.reuse.Container` |
+| `src/Container.css` | Its stylesheet, loaded by the control |
+| `ui5.yaml` | Serves `src/` under `/thirdparty/z2ui5/reuse/` |
 
 ## License
 

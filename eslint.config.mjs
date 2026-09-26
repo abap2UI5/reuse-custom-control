@@ -18,10 +18,6 @@ export default [
       // the abap2UI5 checkout the e2e job builds its backend from
       ".abap2ui5/**",
       "**/dist/**",
-      // generated from abap2UI5 app/webapp - linted there, not here
-      "packages/reuse-custom-control/frontend/**",
-      // the frontend-cc branches scripts/build-branches.mjs builds
-      "out/**",
       "playwright-report/**",
       "test-results/**",
     ],
